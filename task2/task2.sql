@@ -30,7 +30,7 @@ CREATE TABLE Persons(country TEXT,
   FOREIGN KEY(country) REFERENCES Countries(name),
   FOREIGN KEY(locationcountry, locationarea) REFERENCES Areas(country, name),
   CONSTRAINT format_personnummer CHECK
-  (personnummer LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+  (personnummer ~ '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
     OR personnummer LIKE '' ),
   CONSTRAINT budget_positive CHECK (budget >= 0)
 );
@@ -54,5 +54,6 @@ CREATE TABLE Roads (fromcountry TEXT,
   FOREIGN KEY (fromcountry, fromarea) REFERENCES Areas(country, name),
   FOREIGN KEY (tocountry,toarea) REFERENCES Areas (country, name),
   FOREIGN KEY (ownercountry, ownerpersonnummer) REFERENCES Persons (country, personnummer),
-  CONSTRAINT roadtax_positive CHECK (roadtax >= 0)
+  CONSTRAINT roadtax_positive CHECK (roadtax >= 0),
+  CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
