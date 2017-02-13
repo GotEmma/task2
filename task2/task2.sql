@@ -17,7 +17,8 @@ CREATE TABLE Cities (country TEXT,
   name TEXT,
   visitbonus INT,
   PRIMARY KEY(country, name),
-  FOREIGN KEY(country, name) REFERENCES Areas(country, name)
+  FOREIGN KEY(country, name) REFERENCES Areas(country, name),
+  CONSTRAINT bonus_positive CHECK (visitbonus >= 0)
 );
 CREATE TABLE Persons(country TEXT,
   personnummer VARCHAR(13),
@@ -29,7 +30,8 @@ CREATE TABLE Persons(country TEXT,
   FOREIGN KEY(country) REFERENCES Countries(name),
   FOREIGN KEY(locationcountry, locationarea) REFERENCES Areas(country, name),
   CONSTRAINT format_personnummer CHECK
-  (personnummer LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]' )
+  (personnummer LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]' ),
+  CONSTRAINT budget_positive CHECK (budget >= 0)
 );
 CREATE TABLE Hotels (name TEXT,
   locationcountry TEXT,
