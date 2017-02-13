@@ -30,7 +30,8 @@ CREATE TABLE Persons(country TEXT,
   FOREIGN KEY(country) REFERENCES Countries(name),
   FOREIGN KEY(locationcountry, locationarea) REFERENCES Areas(country, name),
   CONSTRAINT format_personnummer CHECK
-  (personnummer LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]' ),
+  (personnummer LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+    OR personnummer LIKE '' ),
   CONSTRAINT budget_positive CHECK (budget >= 0)
 );
 CREATE TABLE Hotels (name TEXT,
