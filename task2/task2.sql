@@ -42,3 +42,16 @@ CREATE TABLE Hotels (name TEXT,
   FOREIGN KEY(locationcountry, locationname) REFERENCES Cities(country, name),
   FOREIGN KEY(ownercountry, ownerpersonnummer) REFERENCES Persons(country, personnummer)
 );
+CREATE TABLE Roads (fromcountry TEXT,
+  fromarea TEXT,
+  tocountry TEXT,
+  toarea TEXT,
+  ownercountry TEXT,
+  ownerpersonnummer VARCHAR(13),
+  roadtax NUMERIC,
+  PRIMARY KEY (fromcountry, fromarea, tocountry, toarea, ownercountry, ownerpersonnummer),
+  FOREIGN KEY (fromcountry, fromarea) REFERENCES Areas(country, name),
+  FOREIGN KEY (tocountry,toarea) REFERENCES Areas (country, name),
+  FOREIGN KEY (ownercountry, ownerpersonnummer) REFERENCES Persons (country, personnummer),
+  CONSTRAINT roadtax_positive CHECK (roadtax >= 0)
+);
