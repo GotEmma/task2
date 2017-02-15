@@ -57,3 +57,7 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT roadtax_positive CHECK (roadtax >= 0),
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
+CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcounry, destarea, cost) AS
+  SELECT Persons.country, personnummer, Areas.country, Areas.name, Areas.country, Areas.name,
+  FROM Persons, Areas, Roads
+;
