@@ -61,3 +61,21 @@ CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcounry, de
   SELECT Persons.country, personnummer, Areas.country, Areas.name, Areas.country, Areas.name,
   FROM Persons, Areas, Roads
 ;
+--CREATE VIEW AssetSummary(country, personnummer, budget, assets , reclaimable) AS
+--  SELECT Persons.country, personnummer, budget,
+
+CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $$
+BEGIN
+  IF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer FROM Roads WHERE
+      ((ownerpersonnummer = NEW.ownerpersonnummer) AND (ownercountry = NEW.ownercountry)
+      AND (toarea = NEW.toarea OR NEW.fromarea) AND (fromarea = NEW.fromarea AND NEW.toarea)))
+    THEN RAISE EXCEPTION ’cannot add road, you already own it’ ;
+  END IF ;
+  UPDATE Roads
+END
+$$ LANGUAGE ’plpgsql’ ;
+
+CREATE TRIGGER addRoad
+  AFTER INSERT ON Roads
+  FOR EACH STATEMENT
+  EXECUTE PROCEDURE when_road_added() ;
