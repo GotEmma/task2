@@ -58,24 +58,22 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
 CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcounry, destarea, cost) AS
-  SELECT Persons.country, personnummer, Areas.country, Areas.name, Areas.country, Areas.name,
+  SELECT Persons.country, personnummer, Areas.country, Areas.name, Areas.country, Areas.name, Roads.roadtax
   FROM Persons, Areas, Roads
 ;
---CREATE VIEW AssetSummary(country, personnummer, budget, assets , reclaimable) AS
---  SELECT Persons.country, personnummer, budget,
-
-CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $$
+CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $addRoad$
 BEGIN
   IF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer FROM Roads WHERE
       ((ownerpersonnummer = NEW.ownerpersonnummer) AND (ownercountry = NEW.ownercountry)
-      AND (toarea = NEW.toarea OR NEW.fromarea) AND (fromarea = NEW.fromarea AND NEW.toarea)))
-    THEN RAISE EXCEPTION ’cannot add road, you already own it’ ;
+      AND (toarea = NEW.toarea OR toarea = NEW.fromarea) AND (fromarea = NEW.fromarea OR fromarea = NEW.toarea))))
+    THEN RETURN NULL;
   END IF ;
-  UPDATE Roads
+  RETURN NEW;
 END
-$$ LANGUAGE ’plpgsql’ ;
-
+$addRoad$ LANGUAGE plpgsql
+;
 CREATE TRIGGER addRoad
-  AFTER INSERT ON Roads
-  FOR EACH STATEMENT
-  EXECUTE PROCEDURE when_road_added() ;
+  BEFORE INSERT ON Roads
+  FOR EACH ROW
+  EXECUTE PROCEDURE when_road_added()
+;
