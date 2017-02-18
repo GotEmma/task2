@@ -57,23 +57,38 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT roadtax_positive CHECK (roadtax >= 0),
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
-CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcounry, destarea, cost) AS
-  SELECT Persons.country, personnummer, Areas.country, Areas.name, Areas.country, Areas.name, Roads.roadtax
+
+
+CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcountry, destarea, cost) AS
+  SELECT Persons.country personcountry, personnummer personnummer, Areas.country country, Areas.name area, Areas.country destcountry, Areas.name destarea,
+  CASE WHEN (personnummer = Roads.ownerpersonnummer AND Persons.country = Roads.ownercountry) THEN 0
+  ELSE MIN(Roads.roadtax)
+  END
   FROM Persons, Areas, Roads
+  WHERE (destcountry = Roads.fromcountry AND destarea = Roads.fromarea) OR (destcountry = Roads.tocountry AND destarea = Roads.toarea)
 ;
 CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $addRoad$
 BEGIN
-  IF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer FROM Roads WHERE
-      ((ownerpersonnummer = NEW.ownerpersonnummer) AND (ownercountry = NEW.ownercountry)
-      AND (toarea = NEW.toarea OR toarea = NEW.fromarea) AND (fromarea = NEW.fromarea OR fromarea = NEW.toarea))))
-    THEN RETURN NULL;
-  END IF ;
-  RETURN NEW;
-END
+  IF (TG_OP = 'INSERT') THEN
+    IF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer FROM Roads WHERE
+        ((ownerpersonnummer = NEW.ownerpersonnummer) AND (ownercountry = NEW.ownercountry)
+        AND (toarea = NEW.toarea OR toarea = NEW.fromarea) AND (fromarea = NEW.fromarea OR fromarea = NEW.toarea))))
+        THEN RETURN NULL;
+    END IF ;
+    RETURN NEW;
+  ELSIF (TG_OP = 'DELETE') THEN
+    IF (EXISTS (SELECT toarea, fromarea FROM Roads WHERE
+    toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea))
+      THEN DELETE FROM Roads WHERE toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea;
+    END IF;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
 $addRoad$ LANGUAGE plpgsql
 ;
 CREATE TRIGGER addRoad
-  BEFORE INSERT ON Roads
+  BEFORE INSERT OR DELETE ON Roads
   FOR EACH ROW
   EXECUTE PROCEDURE when_road_added()
 ;
