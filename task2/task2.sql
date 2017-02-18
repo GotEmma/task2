@@ -67,6 +67,7 @@ CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcountry, d
   FROM Persons, Areas, Roads
   WHERE (destcountry = Roads.fromcountry AND destarea = Roads.fromarea) OR (destcountry = Roads.tocountry AND destarea = Roads.toarea)
 ;
+
 CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $addRoad$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
@@ -78,17 +79,30 @@ BEGIN
     RETURN NEW;
   ELSIF (TG_OP = 'DELETE') THEN
     IF (EXISTS (SELECT toarea, fromarea FROM Roads WHERE
-    toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea))
-      THEN DELETE FROM Roads WHERE toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea;
+        toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea))
+        THEN DELETE FROM Roads WHERE toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea;
+    ELSIF (SELECT toarea, fromarea, ownercountry, ownerpersonnummer, locationcountry, locationarea, roadtax FROM Roads, Persons
+        WHERE ownercountry = NOT NULL AND ownerpersonnummer = NOT NULL)
+        THEN IF ((NEW.toarea = locationarea AND locationcountry = NEW.ownercountry) OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry))
+                THEN UPDATE Persons SET budget = budget - getval(’roadprice’) WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
+                RETURN NEW;
+            END IF;
+            RETURN NULL;
     END IF;
     RETURN OLD;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    IF (EXISTS (SELECT roadtax FROM Roads
+        WHERE roadtax != NEW.roadtax))
+        THEN RETURN NEW;
+    END IF;
+    RETURN NULL;
   END IF;
   RETURN NULL;
 END;
 $addRoad$ LANGUAGE plpgsql
 ;
 CREATE TRIGGER addRoad
-  BEFORE INSERT OR DELETE ON Roads
+  BEFORE INSERT OR DELETE OR UPDATE ON Roads
   FOR EACH ROW
   EXECUTE PROCEDURE when_road_added()
 ;
