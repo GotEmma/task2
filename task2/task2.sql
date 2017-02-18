@@ -58,15 +58,24 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
 
+CREATE VIEW NextMoves --(personcountry, personnummer, country, area, destcounry, destarea, cost)
+  AS
+  SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
+  Persons.locationarea as area,
+  Roads.tocountry as destcounry, Roads.toarea as destarea
+  FROM Persons INNER JOIN Roads ON
+    Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea
+  UNION
+  SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
+  Persons.locationarea as area,
+  Roads.fromcountry as destcounry, Roads.fromarea as destarea
+  FROM Persons INNER JOIN Roads ON
+    Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea
+  ORDER by personnummer
+  ;
 
-CREATE VIEW NextMoves(personcountry, personnummer, country, area, destcountry, destarea, cost) AS
-  SELECT Persons.country personcountry, personnummer personnummer, Areas.country country, Areas.name area, Areas.country destcountry, Areas.name destarea,
-  CASE WHEN (personnummer = Roads.ownerpersonnummer AND Persons.country = Roads.ownercountry) THEN 0
-  ELSE MIN(Roads.roadtax)
-  END
-  FROM Persons, Areas, Roads
-  WHERE (destcountry = Roads.fromcountry AND destarea = Roads.fromarea) OR (destcountry = Roads.tocountry AND destarea = Roads.toarea)
-;
+  --Roads.roadtax
+
 
 CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $addRoad$
 BEGIN
@@ -101,6 +110,7 @@ BEGIN
 END;
 $addRoad$ LANGUAGE plpgsql
 ;
+
 CREATE TRIGGER addRoad
   BEFORE INSERT OR DELETE OR UPDATE ON Roads
   FOR EACH ROW
