@@ -84,7 +84,7 @@ CREATE VIEW NextMoves --(personcountry, personnummer, country, area, destcounry,
   --Roads.roadtax
 
 
-CREATE FUNCTION when_road_added() RETURNS TRIGGER AS $addRoad$
+CREATE FUNCTION roadChanges() RETURNS TRIGGER AS $road$
 BEGIN
   IF (TG_OP = 'INSERT') THEN
     IF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer FROM Roads WHERE
@@ -92,11 +92,11 @@ BEGIN
         AND (toarea = NEW.toarea OR toarea = NEW.fromarea) AND (fromarea = NEW.fromarea OR fromarea = NEW.toarea))))
         THEN RETURN NULL;
     ELSIF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer, roadtax FROM Roads
-        WHERE NEW.ownercountry != NULL AND NEW.ownerpersonnummer != NULL))
-        THEN IF (EXISTS (SELECT locationcountry, locationarea FROM Persons
-                 WHERE (locationarea = NEW.toarea AND locationcountry = NEW.ownercountry)
-                 OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry)))
-                 THEN UPDATE Persons SET budget = budget - 23 WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
+        WHERE NEW.ownercountry != '' AND NEW.ownerpersonnummer != ''))
+        THEN IF (EXISTS (SELECT locationcountry, locationarea, personnummer FROM Persons
+                 WHERE (locationarea = NEW.toarea AND locationcountry = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer)
+                 OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer)))
+                 THEN UPDATE Persons SET budget = budget - 33 WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
                  RETURN NEW;
              END IF;
              RETURN NULL;
@@ -106,13 +106,7 @@ BEGIN
     IF (EXISTS (SELECT toarea, fromarea FROM Roads WHERE
          toarea = OLD.fromarea AND fromarea = OLD.toarea))
          THEN DELETE FROM Roads WHERE toarea = OLD.fromarea AND fromarea = OLD.toarea;
-    ELSIF (SELECT toarea, fromarea, ownercountry, ownerpersonnummer, locationcountry, locationarea, roadtax FROM Roads, Persons
-        WHERE ownercountry = NOT NULL AND ownerpersonnummer = NOT NULL)
-        THEN IF ((NEW.toarea = locationarea AND locationcountry = NEW.ownercountry) OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry))
-                THEN UPDATE Persons SET budget = budget - getval(’roadprice’) WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
-                RETURN NEW;
-            END IF;
-            RETURN NULL;
+         RETURN NULL;
     END IF;
     RETURN OLD;
   ELSIF (TG_OP = 'UPDATE') THEN
@@ -124,24 +118,45 @@ BEGIN
   END IF;
   RETURN NULL;
 END;
-$addRoad$ LANGUAGE plpgsql
+$road$ LANGUAGE plpgsql
 ;
-CREATE TRIGGER addRoad
+CREATE TRIGGER road
   BEFORE INSERT OR DELETE OR UPDATE ON Roads
   FOR EACH ROW
-  EXECUTE PROCEDURE when_road_added()
+  EXECUTE PROCEDURE roadChanges()
 ;
 CREATE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
   BEGIN
     IF (TG_OP = 'INSERT') THEN
-      UPDATE Persons SET budget = budget - getval(’hotelprice’) WHERE NEW.ownercountry = Persons.country AND NEW.ownerpersonnummer = Persons.personnummer;
+      IF (EXISTS (SELECT ownercountry, ownerpersonnummer, locationcountry, locationname FROM Hotels
+          WHERE ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer
+          AND locationname = NEW.locationname AND locationcountry = NEW.locationcountry))
+          THEN RETURN NULL;
+      END IF;
+      UPDATE Persons SET budget = budget - 56 WHERE
+      NEW.ownercountry = country AND NEW.ownerpersonnummer = personnummer;
       RETURN NEW;
+    ELSIF (TG_OP = 'UPDATE') THEN
+      IF (EXISTS (SELECT locationcountry, locationname FROM Hotels
+          WHERE locationname != NEW.locationname OR NEW.locationname = NULL OR
+          locationcountry != NEW.locationcountry OR NEW.locationcountry = NULL))
+          THEN RETURN NULL;
+      ELSIF (EXISTS (SELECT ownercountry, ownerpersonnummer, locationcountry, locationname FROM Hotels
+             WHERE ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer
+             AND locationname = OLD.locationname AND locationcountry = OLD.locationcountry))
+             THEN RETURN NULL;
+      END IF;
+      RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+      UPDATE Persons SET budget = budget + 25 WHERE
+      personnummer = OLD.ownerpersonnummer AND country = OLD.ownercountry;
+      RETURN OLD;
     END IF;
   END;
 $hotelChanges$ LANGUAGE plpgsql
 ;
  CREATE TRIGGER hotelChanges
-   BEFORE INSERT OR UPDATE ON Hotels
+   BEFORE INSERT OR UPDATE OR DELETE ON Hotels
    FOR EACH ROW
    EXECUTE PROCEDURE hotel()
 ;
