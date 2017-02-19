@@ -91,12 +91,21 @@ BEGIN
         ((ownerpersonnummer = NEW.ownerpersonnummer) AND (ownercountry = NEW.ownercountry)
         AND (toarea = NEW.toarea OR toarea = NEW.fromarea) AND (fromarea = NEW.fromarea OR fromarea = NEW.toarea))))
         THEN RETURN NULL;
+    ELSIF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer, roadtax FROM Roads
+        WHERE NEW.ownercountry != NULL AND NEW.ownerpersonnummer != NULL))
+        THEN IF (EXISTS (SELECT locationcountry, locationarea FROM Persons
+                 WHERE (locationarea = NEW.toarea AND locationcountry = NEW.ownercountry)
+                 OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry)))
+                 THEN UPDATE Persons SET budget = budget - 23 WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
+                 RETURN NEW;
+             END IF;
+             RETURN NULL;
     END IF ;
     RETURN NEW;
   ELSIF (TG_OP = 'DELETE') THEN
     IF (EXISTS (SELECT toarea, fromarea FROM Roads WHERE
-        toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea))
-        THEN DELETE FROM Roads WHERE toarea LIKE OLD.fromarea AND fromarea LIKE OLD.toarea;
+         toarea = OLD.fromarea AND fromarea = OLD.toarea))
+         THEN DELETE FROM Roads WHERE toarea = OLD.fromarea AND fromarea = OLD.toarea;
     ELSIF (SELECT toarea, fromarea, ownercountry, ownerpersonnummer, locationcountry, locationarea, roadtax FROM Roads, Persons
         WHERE ownercountry = NOT NULL AND ownerpersonnummer = NOT NULL)
         THEN IF ((NEW.toarea = locationarea AND locationcountry = NEW.ownercountry) OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry))
@@ -117,9 +126,22 @@ BEGIN
 END;
 $addRoad$ LANGUAGE plpgsql
 ;
-
 CREATE TRIGGER addRoad
   BEFORE INSERT OR DELETE OR UPDATE ON Roads
   FOR EACH ROW
   EXECUTE PROCEDURE when_road_added()
+;
+CREATE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
+  BEGIN
+    IF (TG_OP = 'INSERT') THEN
+      UPDATE Persons SET budget = budget - getval(’hotelprice’) WHERE NEW.ownercountry = Persons.country AND NEW.ownerpersonnummer = Persons.personnummer;
+      RETURN NEW;
+    END IF;
+  END;
+$hotelChanges$ LANGUAGE plpgsql
+;
+ CREATE TRIGGER hotelChanges
+   BEFORE INSERT OR UPDATE ON Hotels
+   FOR EACH ROW
+   EXECUTE PROCEDURE hotel()
 ;
