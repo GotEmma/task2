@@ -60,25 +60,35 @@ CREATE TABLE Roads (fromcountry TEXT,
 
 CREATE VIEW NextMoves --(personcountry, personnummer, country, area, destcounry, destarea, cost)
   AS
-  SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
-  Persons.locationarea as area,
-  Roads.tocountry as destcounry, Roads.toarea as destarea
-  FROM Persons INNER JOIN Roads ON
-    Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea
-  UNION
-  SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
-  Persons.locationarea as area,
-  Roads.fromcountry as destcounry, Roads.fromarea as destarea
-  FROM Persons INNER JOIN Roads ON
-    Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea
-  UNION
-    (SELECT Roads.roadtax as cost
+    SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
+    Persons.locationarea as area,
+    Roads.tocountry as destcounry, Roads.toarea as destarea, Roads.roadtax as cost
+    FROM Persons INNER JOIN Roads ON
+      Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea
+    UNION
+    SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
+    Persons.locationarea as area,
+    Roads.fromcountry as destcounry, Roads.fromarea as destarea, Roads.roadtax as cost
+    FROM Persons INNER JOIN Roads ON
+      Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea
+    UNION
+    SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
+      Persons.locationarea as area,
+      Roads.fromcountry as destcounry, Roads.fromarea as destarea, 0 as cost
       FROM Persons INNER JOIN Roads ON
-      (Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea) OR
-      (Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea) AND
-      NOT ((Persons.country = Roads.ownercountry AND Persons.personnummer = Roads.ownerpersonnummer)
+      (Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea) AND
+      ((Persons.country = Roads.ownercountry AND Persons.personnummer = Roads.ownerpersonnummer)
       OR (''= Roads.ownercountry AND '' = Roads.ownerpersonnummer))
-  ORDER by personnummer
+    UNION
+    SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
+          Persons.locationarea as area,
+          Roads.tocountry as destcounry, Roads.toarea as destarea, 0 as cost
+            FROM Persons INNER JOIN Roads ON
+            (Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea) AND
+            ((Persons.country = Roads.ownercountry AND Persons.personnummer = Roads.ownerpersonnummer)
+            OR (''= Roads.ownercountry AND '' = Roads.ownerpersonnummer))
+  ORDER by personnummer, cost ASC
+  --ta översta raden per sträcka person
   ;
 
   --Roads.roadtax
