@@ -170,3 +170,34 @@ $hotelChanges$ LANGUAGE plpgsql
    FOR EACH ROW
    EXECUTE PROCEDURE hotel()
 ;
+CREATE FUNCTION person() RETURNS TRIGGER AS $personChanges$
+  BEGIN
+    IF(TG_OP = 'UPDATE') THEN
+      IF (EXISTS (SELECT fromarea, fromcountry, toarea, tocountry, locationarea,
+      locationcountry, personnummer, country FROM Roads, Persons
+      WHERE (fromarea = NEW.locationarea AND fromcountry = NEW.locationcountry
+      AND locationarea = toarea AND locationcountry = tocountry) OR
+      (toarea = NEW.locationarea AND tocountry = NEW.locationcountry
+      AND locationarea = fromarea AND locationcountry = fromcountry)))
+          THEN UPDATE Persons SET budget = budget - (SELECT MIN(cost) FROM NextMoves
+          WHERE NextMoves.personnummer = personnummer AND NextMoves.personcountry = country)
+          WHERE Persons.personnummer = personnummer AND Persons.country = country;
+          IF (EXISTS (SELECT name, country, Hotels.locationcountry, Hotels.locationname FROM Cities, Hotels
+          WHERE name = NEW.locationname AND country = NEW.locationcountry AND
+          Hotels.locationcountry = NEW.locationcountry AND Hotels.locationname = NEW.locationname))
+              THEN UPDATE Persons SET budget = budget - getval(’cityvisit’) +
+              (SELECT visitbonus FROM Cities WHERE Persons.personnummer = personnummer AND Persons.country = country)
+              WHERE Persons.personnummer = personnummer;
+          END IF;
+          RETURN NEW;
+      END IF;
+      RETURN NULL;
+    END IF;
+  END;
+$personChanges$ LANGUAGE plpgsql
+;
+CREATE TRIGGER personChanges
+  BEFORE INSERT OR UPDATE OR DELETE ON Persons
+  FOR EACH ROW
+  EXECUTE PROCEDURE person()
+;

@@ -19,12 +19,12 @@ INSERT INTO Persons VALUES ('Sweden','19871229-5546','Player2','Sweden','Stockho
 INSERT INTO Persons VALUES ('Denmark','19871229-5547','Player3','Denmark','Copenhagen',10000);
 INSERT INTO Persons VALUES ('Denmark','19871229-5548','Player4','Germany','Munich',10000);
 
-INSERT INTO Roads VALUES ('Sweden','Gothenburg','Sweden','Stockholm','','',0);
-INSERT INTO Roads VALUES ('Sweden','Gothenburg','Sweden','Stockholm','Sweden','19871229-5545',30);
+INSERT INTO Roads VALUES ('Sweden','Gothenburg','Sweden','Stockholm','','',getval('roadtax'));
+INSERT INTO Roads VALUES ('Sweden','Gothenburg','Sweden','Stockholm','Sweden','19871229-5545',getval('roadtax'));
 
-INSERT INTO Roads VALUES ('Sweden','Malmö','Denmark','Copenhagen','Sweden','19871229-5546',26);
-INSERT INTO Roads VALUES ('Denmark','Copenhagen','Germany','Berlin','Sweden','19871229-5546',34);
+INSERT INTO Roads VALUES ('Sweden','Malmö','Denmark','Copenhagen','Sweden','19871229-5546',getval('roadtax'));
+INSERT INTO Roads VALUES ('Denmark','Copenhagen','Germany','Berlin','Sweden','19871229-5546',getval('roadtax'));
 
-INSERT INTO Roads VALUES ('Germany','Hamburg','Germany','Munich','','',0);
-INSERT INTO Roads VALUES ('Germany','Munich','Sweden','Stockholm','Denmark','19871229-5548',64);
-INSERT INTO Roads VALUES ('Germany','Munich','Austria','Vienna','Sweden','19871229-5545',24);
+INSERT INTO Roads VALUES ('Germany','Hamburg','Germany','Munich','','',getval('roadtax'));
+INSERT INTO Roads VALUES ('Germany','Munich','Sweden','Stockholm','Denmark','19871229-5548',getval('roadtax'));
+INSERT INTO Roads VALUES ('Germany','Munich','Austria','Vienna','Sweden','19871229-5545',getval('roadtax'));
