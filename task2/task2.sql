@@ -130,7 +130,23 @@ CREATE VIEW NextMoves --(personcountry, personnummer, country, area, destcounry,
   --ta översta raden per sträcka person
   ;
 
-  --Roads.roadtax
+  CREATE VIEW AssetSummary AS
+
+    SELECT Persons.country as country, Persons.personnummer as personnummer, Persons.budget as budget,
+      (SELECT (count(*) * getval('roadprice'))
+        FROM Roads
+        WHERE Persons.country = ownercountry AND Persons.personnummer = ownerpersonnummer) +
+      (SELECT (count(*)*getval('hotelprice'))
+        FROM Hotels
+        WHERE Persons.country = ownercountry AND Persons.personnummer = ownerpersonnummer) as assets,
+      (SELECT ((count(*)*getval('hotelprice'))*getval('hotelrefund'))
+        FROM Hotels
+        WHERE Persons.country = ownercountry AND Persons.personnummer = ownerpersonnummer)
+      as reclaimable
+    FROM Persons
+    GROUP by country, personnummer
+    ORDER by personnummer
+    ;
 
 
 CREATE FUNCTION roadChanges() RETURNS TRIGGER AS $road$
