@@ -106,7 +106,7 @@ BEGIN
         THEN IF (EXISTS (SELECT locationcountry, locationarea, personnummer FROM Persons
                  WHERE (locationarea = NEW.toarea AND locationcountry = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer)
                  OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer)))
-                 THEN UPDATE Persons SET budget = budget - 33 WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
+                 THEN UPDATE Persons SET budget = budget - getval(’roadprice’) WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
                  RETURN NEW;
              END IF;
              RETURN NULL;
@@ -143,7 +143,7 @@ CREATE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
           AND locationname = NEW.locationname AND locationcountry = NEW.locationcountry))
           THEN RETURN NULL;
       END IF;
-      UPDATE Persons SET budget = budget - 56 WHERE
+      UPDATE Persons SET budget = budget - getval(’hotelprice’) WHERE
       NEW.ownercountry = country AND NEW.ownerpersonnummer = personnummer;
       RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
@@ -158,7 +158,7 @@ CREATE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
       END IF;
       RETURN NEW;
     ELSIF (TG_OP = 'DELETE') THEN
-      UPDATE Persons SET budget = budget + 25 WHERE
+      UPDATE Persons SET budget = budget + getval(’hotelrefund’) WHERE
       personnummer = OLD.ownerpersonnummer AND country = OLD.ownercountry;
       RETURN OLD;
     END IF;
