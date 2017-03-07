@@ -61,18 +61,16 @@ public class Game
 		System.out.println("    q[uit move]");
 		System.out.println("    [...] is optional\n");
 	}
-
-	/* Given a town name, country and population, this function
- 	 * should try to insert an area and a town (and possibly also a country)
- 	 * for the given attributes.
- 	 */
-	void insertTown(Connection conn, String name, String country, String population) throws SQLException  {
+	//extra insert to prevent duplicate code
+	void insertArea(Connection conn, String name, String country, String population) throws SQLException  {
 		try {
-		//If country inte redan finns?
+		//If country inte redan finns? TODO om det finns tid
 		PreparedStatement countryPstmt = conn.prepareStatement("INSERT INTO Countries VALUES (?)");
 		countryPstmt.setString(1, country);
+		countryPstmt.executeUpdate();
+		countryPstmt.close();
 	} catch (SQLException e) {
-		//something
+		System.out.println("something went wrong inserting country");
 	}
 		try {
       pop = Integer.parseInt(population);
@@ -85,14 +83,29 @@ public class Game
 			areaPstmt.setString(1, country);
 			areaPstmt.setString(2, name);
 			areaPstmt.setInt(3, pop);
+			areaPstmt.executeUpdate();
+			areaPstmt.close();
+		} catch (SQLException e) {
+			 System.out.println("something went wrong inserting area");
+		}
+	}
 
+	/* Given a town name, country and population, this function
+ 	 * should try to insert an area and a town (and possibly also a country)
+ 	 * for the given attributes.
+ 	 */
+	void insertTown(Connection conn, String name, String country, String population) throws SQLException  {
+		insertArea(conn, name, country, population);
+		try {
 			//insert town
 			PreparedStatement townPstmt = conn.prepareStatement("INSERT INTO Towns VALUES (?, ?)");
-			areaPstmt.setString(1, country);
-			areaPstmt.setString(2, name);
+			townPstmt.setString(1, country);
+			townPstmt.setString(2, name);
+			townPstmt.executeUpdate();
+			townPstmt.close();
 
 		} catch (SQLException e) {
-			//something
+			System.out.println("something went wrong inserting town");
 		}
 	}
 
@@ -102,9 +115,18 @@ public class Game
  	 * The city visitbonus should be set to 0.
  	 */
 	void insertCity(Connection conn, String name, String country, String population) throws SQLException {
-		// TODO: Your implementation here
+		insertArea(conn, name, country, population);
+		try {
+			//insert city
+			PreparedStatement cityPstmt = conn.prepareStatement("INSERT INTO Cities VALUES (?, ?, 0)");
+			cityPstmt.setString(1, country);
+			cityPstmt.setString(2, name);
+			cityPstmt.executeUpdate();
+			cityPstmt.close();
 
-		// TODO TO HERE
+		} catch (SQLException e) {
+			System.out.println("something went wrong inserting city");
+		}
 	}
 
 	/* Given two areas, this function
@@ -112,9 +134,17 @@ public class Game
  	 * between these two areas.
  	 */
 	void insertRoad(Connection conn, String area1, String country1, String area2, String country2) throws SQLException {
-		// TODO: Your implementation here
+		try {
+			PreparedStatement roadPstmt = conn.prepareStatement("INSERT INTO Roads VALUES (?, ?, ?, ?, '', '', 0)");
+			roadPstmt.setString(1, country1);
+			roadPstmt.setString(2, area1);
+			roadPstmt.setString(3, country2);
+			roadPstmt.setString(4, area2);
 
-		// TODO TO HERE
+		} catch (SQLException e) {
+			System.out.println("something went wrong inserting road");
+		}
+
 	}
 
 	/* Given a player, this function
