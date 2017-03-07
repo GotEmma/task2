@@ -155,6 +155,7 @@ public class Game
 		rs.close();
 		st.close();
 		return location;
+
 	}
 
 	/* Given a player, this function
@@ -302,7 +303,6 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
-		return 0;
 	}
 
 	/* Given a player and a city, this function
@@ -313,7 +313,6 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
-		return 0;
 	}
 
 	/* Given a player, a from area and a to area, this function
@@ -324,7 +323,6 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
-		return 0;
 	}
 
 	/* Given a player and a city, this function
@@ -333,7 +331,6 @@ public class Game
 	 */
 	int buyHotel(Connection conn, Player person, String name, String city, String country) throws SQLException {
 		// TODO TO HERE
-		return 0;
 	}
 
 	/* Given a player and a new location, this function
