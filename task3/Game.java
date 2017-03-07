@@ -67,9 +67,33 @@ public class Game
  	 * for the given attributes.
  	 */
 	void insertTown(Connection conn, String name, String country, String population) throws SQLException  {
-		// TODO: Your implementation here
-	    
-		// TODO TO HERE
+		try {
+		//If country inte redan finns?
+		PreparedStatement countryPstmt = conn.prepareStatement("INSERT INTO Countries VALUES (?)");
+		countryPstmt.setString(1, country);
+	} catch (SQLException e) {
+		//something
+	}
+		try {
+      pop = Integer.parseInt(population);
+		} catch (NumberFormatException e) {
+      	System.out.println("population must be a number");
+		}
+		try {
+			//insert area
+			PreparedStatement areaPstmt = conn.prepareStatement("INSERT INTO Areas VALUES (?, ?, ?)");
+			areaPstmt.setString(1, country);
+			areaPstmt.setString(2, name);
+			areaPstmt.setInt(3, pop);
+
+			//insert town
+			PreparedStatement townPstmt = conn.prepareStatement("INSERT INTO Towns VALUES (?, ?)");
+			areaPstmt.setString(1, country);
+			areaPstmt.setString(2, name);
+
+		} catch (SQLException e) {
+			//something
+		}
 	}
 
 	/* Given a city name, country and population, this function
@@ -79,7 +103,7 @@ public class Game
  	 */
 	void insertCity(Connection conn, String name, String country, String population) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -89,7 +113,7 @@ public class Game
  	 */
 	void insertRoad(Connection conn, String area1, String country1, String area2, String country2) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -98,7 +122,7 @@ public class Game
 	 */
 	String getCurrentArea(Connection conn, Player person) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -107,7 +131,7 @@ public class Game
 	 */
 	String getCurrentCountry(Connection conn, Player person) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -118,7 +142,7 @@ public class Game
 	 */
 	int createPlayer(Connection conn, Player person) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -129,7 +153,7 @@ public class Game
  	 */
 	void getNextMoves(Connection conn, Player person, String area, String country) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
  	}
 
@@ -141,7 +165,7 @@ public class Game
 	void getNextMoves(Connection conn, Player person) throws SQLException {
 		// TODO: Your implementation here
 		// hint: Use your implementation of the overloaded getNextMoves function
-	    
+
 		// TODO TO HERE
 	}
 
@@ -151,7 +175,7 @@ public class Game
 	 */
 	void listProperties(Connection conn, String personnummer, String country) {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -161,7 +185,7 @@ public class Game
 	void listProperties(Connection conn, Player person) throws SQLException {
 		// TODO: Your implementation here
 		// hint: Use your implementation of the overlaoded listProperties function
-	    
+
 		// TODO TO HERE
 	}
 
@@ -169,7 +193,7 @@ public class Game
 	 */
 	void showScores(Connection conn) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -179,7 +203,7 @@ public class Game
 	 */
 	int sellRoad(Connection conn, Player person, String area1, String country1, String area2, String country2) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -189,7 +213,7 @@ public class Game
 	 */
 	int sellHotel(Connection conn, Player person, String city, String country) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -199,7 +223,7 @@ public class Game
 	 */
 	int buyRoad(Connection conn, Player person, String area1, String country1, String area2, String country2) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -209,7 +233,7 @@ public class Game
 	 */
 	int buyHotel(Connection conn, Player person, String name, String city, String country) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -219,7 +243,7 @@ public class Game
 	 */
 	int changeLocation(Connection conn, Player person, String area, String country) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -227,7 +251,7 @@ public class Game
  	 */
 	void setVisitingBonus(Connection conn) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -235,7 +259,7 @@ public class Game
  	 */
 	void announceWinner(Connection conn) throws SQLException {
 		// TODO: Your implementation here
-	    
+
 		// TODO TO HERE
 	}
 
@@ -466,4 +490,3 @@ public class Game
 		g.play(worldfile);
 	}
 }
-
