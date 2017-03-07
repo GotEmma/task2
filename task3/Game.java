@@ -140,6 +140,8 @@ public class Game
 			roadPstmt.setString(2, area1);
 			roadPstmt.setString(3, country2);
 			roadPstmt.setString(4, area2);
+			roadPstmt.executeUpdate();
+			roadPstmt.close();
 
 		} catch (SQLException e) {
 			System.out.println("something went wrong inserting road");
