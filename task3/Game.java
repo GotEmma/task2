@@ -73,7 +73,7 @@ public class Game
 		System.out.println("something went wrong inserting country");
 	}
 		try {
-      pop = Integer.parseInt(population);
+      int pop = Integer.parseInt(population);
 		} catch (NumberFormatException e) {
       	System.out.println("population must be a number");
 		}
@@ -235,6 +235,7 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
+		return 0;
 	}
 
 	/* Given a player and a city, this function
@@ -245,6 +246,7 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
+		return 0;
 	}
 
 	/* Given a player, a from area and a to area, this function
@@ -255,6 +257,7 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
+		return 0;
 	}
 
 	/* Given a player and a city, this function
@@ -265,6 +268,7 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
+		return 0;
 	}
 
 	/* Given a player and a new location, this function
@@ -275,6 +279,7 @@ public class Game
 		// TODO: Your implementation here
 
 		// TODO TO HERE
+		return 0;
 	}
 
 	/* This function should add the visitbonus of 1000 to a random city
