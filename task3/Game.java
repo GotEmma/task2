@@ -310,7 +310,6 @@ public class Game
 		} catch (SQLException e) {
 			System.out.println("something went wrong listing scores");
 		}
-
 	}
 
 	/* Given a player, a from area and a to area, this function
@@ -318,9 +317,24 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int sellRoad(Connection conn, Player person, String area1, String country1, String area2, String country2) throws SQLException {
-		// TODO: Your implementation here
-
-		// TODO TO HERE
+		//check if there is such a road or asume it is??
+		try {
+			PreparedStatement sellRoadPstmt = conn.prepareStatement("DELETE FROM Roads (WHERE ownercountry = ? AND ownerpersonnummer = ?) AND (fromcountry = ? AND fromarea = ? AND tocountry = ? AND toarea = ?) OR (fromcountry = ? AND fromarea = ? AND tocountry = ? AND toarea = ?)");
+			sellRoadPstmt.setString(1, person.country);
+			sellRoadPstmt.setString(2, person.personnummer);
+			sellRoadPstmt.setString(3, country1);
+			sellRoadPstmt.setString(4, area1);
+			sellRoadPstmt.setString(5, country2);
+			sellRoadPstmt.setString(6, area2);
+			sellRoadPstmt.setString(7, country2);
+			sellRoadPstmt.setString(8, area2);
+			sellRoadPstmt.setString(9, country1);
+			sellRoadPstmt.setString(10, area1);
+			return sellRoadPstmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("something went wrong selling road");
+			return 0;
+		}
 	}
 
 	/* Given a player and a city, this function
@@ -328,9 +342,18 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int sellHotel(Connection conn, Player person, String city, String country) throws SQLException {
-		// TODO: Your implementation here
+		try {
+			PreparedStatement sellHotelPstmt = conn.prepareStatement("DELETE FROM Hotels WHERE ownercountry = ? AND ownerpersonnummer = ? AND locationcountry = ? AND locationname = ? ");
+			sellHotelPstmt.setString(1, person.country);
+			sellHotelPstmt.setString(2, person.personnummer);
+			sellHotelPstmt.setString(3, country);
+			sellHotelPstmt.setString(4, city);
 
-		// TODO TO HERE
+			return sellRoadPstmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("something went wrong selling hotel");
+			return 0;
+		}
 	}
 
 	/* Given a player, a from area and a to area, this function
@@ -338,9 +361,20 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int buyRoad(Connection conn, Player person, String area1, String country1, String area2, String country2) throws SQLException {
-		// TODO: Your implementation here
+		try {
+			PreparedStatement roadPstmt = conn.prepareStatement("INSERT INTO Roads VALUES (?,?,?,?,?,?,getval('roadtax'))");
+			roadPstmt.setString(1, country1);
+			roadPstmt.setString(2, area1);
+			roadPstmt.setString(3, country2);
+			roadPstmt.setString(4, area2);
+			roadPstmt.setString(5, person.country);
+			roadPstmt.setString(6, person.personnummer);
 
-		// TODO TO HERE
+			return roadPstmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("something went wrong buying road");
+			return 0;
+		}
 	}
 
 	/* Given a player and a city, this function
@@ -348,7 +382,19 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int buyHotel(Connection conn, Player person, String name, String city, String country) throws SQLException {
-		// TODO TO HERE
+		try {
+			PreparedStatement hotelPstmt = conn.prepareStatement("INSERT INTO Hotels VALUES (?,?,?,?,?)");
+			hotelPstmt.setString(1, name);
+			hotelPstmt.setString(2, country);
+			hotelPstmt.setString(3, city);
+			hotelPstmt.setString(4, person.country);
+			hotelPstmt.setString(5, person.personnummer);
+
+			return hotelPstmt.executeUpdate();
+		} catch (SQLException e) {
+			System.out.println("something went wrong buying hotel");
+			return 0;
+		}
 	}
 
 	/* Given a player and a new location, this function
