@@ -204,9 +204,20 @@ public class Game
 	 * that is identified by the tuple of personnummer and country.
 	 */
 	void listProperties(Connection conn, String personnummer, String country) {
-		// TODO: Your implementation here
+		PreparedStatement roadPstmt = conn.prepareStatement("SELECT fromcountry, fromarea, tocountry, toarea, roadtax FROM Roads
+		 	WHERE ownercountry = ? AND ownerpersonnummer = ?");
+		roadPstmt.setString(1, country);
+		roadPstmt.setString(2, personnummer);
+		ResultSet rs = roadPstmt.executeQuery();
+			while (rs.next()){
+				System.out.println("Road:");
+				System.out.println("From:\n" + rs.getString(1) + ", ");
+				System.out.println(rs.getString(2));
+				System.out.println("To:\n" + rs.getString(3) + ", ");
+				System.out.println(rs.getString(4));
+				System.out.println("Roadtax:\n" + rs.getDouble(5));
 
-		// TODO TO HERE
+			}
 	}
 
 	/* Given a player, this function
