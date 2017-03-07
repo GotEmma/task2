@@ -62,7 +62,7 @@ public class Game
 	//extra insert to prevent duplicate code
 	void insertArea(Connection conn, String name, String country, String population) throws SQLException  {
 		try {
-		//Check if the country alrea exists, if not insert it 
+		//Check if the country alrea exists, if not insert it
 		PreparedStatement checkCountryPstmt = conn.prepareStatement("SELECT * FROM Countries WHERE name = ?")
 		checkCountryPstmt.setString(1, country);
 		ResultSet rs = checkCountryPstmt.executeQuery();
@@ -296,9 +296,21 @@ public class Game
 	/* This function should print the budget, assets and refund values for all players.
 	 */
 	void showScores(Connection conn) throws SQLException {
-		// TODO: Your implementation here
+		//hur kolla alla spelare? inte samma sak som alla personer?
+		try {
+			PreparedStatement scorePstmt = conn.prepareStatement("SELECT * FROM AssetSummary");
+			ResultSet rs = scorePstmt.executeQuery();
+			while (rs.next()){
+				System.out.println("Playercountry: " + rs.getString(1) "Player personnummer: " + rs.getString(2) );
+				System.out.println("Budget: " + rs.getDouble(3));
+				System.out.println("Assets: " + rs.getDouble(4));
+				System.out.println("Refund: " + rs.getDouble(5));
+			}
+			rs.close();
+		} catch (SQLException e) {
+			System.out.println("something went wrong listing scores");
+		}
 
-		// TODO TO HERE
 	}
 
 	/* Given a player, a from area and a to area, this function
