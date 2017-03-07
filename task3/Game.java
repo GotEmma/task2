@@ -71,16 +71,11 @@ public class Game
 		System.out.println("something went wrong inserting country");
 	}
 		try {
-      int pop = Integer.parseInt(population);
-		} catch (NumberFormatException e) {
-      	System.out.println("population must be a number");
-		}
-		try {
 			//insert area
 			PreparedStatement areaPstmt = conn.prepareStatement("INSERT INTO Areas VALUES (?, ?, ?)");
 			areaPstmt.setString(1, country);
 			areaPstmt.setString(2, name);
-			areaPstmt.setInt(3, pop);
+			areaPstmt.setInt(3, Integer.parseInt(population));
 			areaPstmt.executeUpdate();
 			areaPstmt.close();
 		} catch (SQLException e) {
@@ -251,30 +246,44 @@ public class Game
 	 * that is identified by the tuple of personnummer and country.
 	 */
 	void listProperties(Connection conn, String personnummer, String country) {
-		PreparedStatement roadPstmt = conn.prepareStatement("SELECT fromcountry, fromarea, tocountry, toarea, roadtax FROM Roads
-		 	WHERE ownercountry = ? AND ownerpersonnummer = ?");
-		roadPstmt.setString(1, country);
-		roadPstmt.setString(2, personnummer);
-		ResultSet rs = roadPstmt.executeQuery();
-			while (rs.next()){
-				System.out.println("Road:");
-				System.out.println("From:\n" + rs.getString(1) + ", ");
-				System.out.println(rs.getString(2));
-				System.out.println("To:\n" + rs.getString(3) + ", ");
-				System.out.println(rs.getString(4));
-				System.out.println("Roadtax:\n" + rs.getDouble(5));
-
+		try {
+			PreparedStatement roadPstmt = conn.prepareStatement("SELECT fromcountry, fromarea, tocountry, toarea, roadtax FROM Roads WHERE ownercountry = ? AND ownerpersonnummer = ?");
+			roadPstmt.setString(1, country);
+			roadPstmt.setString(2, personnummer);
+			ResultSet rs = roadPstmt.executeQuery();
+				while (rs.next()){
+					System.out.println("Road:");
+					System.out.println("From:\n" + rs.getString(1) + ", ");
+					System.out.println(rs.getString(2));
+					System.out.println("To:\n" + rs.getString(3) + ", ");
+					System.out.println(rs.getString(4));
+					System.out.println("Roadtax:\n" + rs.getDouble(5));
+				}
+				rs.close();
+				} catch (SQLException e) {
+					System.out.println("something went wrong listing (road) properties");
 			}
-	}
+			try {
+				PreparedStatement hotelPstmt = conn.prepareStatement("SELECT name, locationcountry, locationname FROM Hotels WHERE ownercountry = ? AND ownerpersonnummer = ?");
+				hotelPstmt.setString(1, country);
+				hotelPstmt.setString(2, personnummer);
+				ResultSet rs = hotelPstmt.executeQuery();
+				while (rs.next()){
+					System.out.println("Hotel:");
+					System.out.println("Name: " + rs.getString(1));
+					System.out.println("In: " + rs.getString(2) + ", " + rs.getString(3));
+				}
+				rs.close();
+				} catch (SQLException e) {
+					System.out.println("something went wrong listing (hotel) properties");
+				}
+			}
 
 	/* Given a player, this function
 	 * should list all properties of the player.
 	 */
 	void listProperties(Connection conn, Player person) throws SQLException {
-		// TODO: Your implementation here
-		// hint: Use your implementation of the overlaoded listProperties function
-
-		// TODO TO HERE
+		listProperties(conn, person.personnummer, person.country);
 	}
 
 	/* This function should print the budget, assets and refund values for all players.
