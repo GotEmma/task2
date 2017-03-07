@@ -62,11 +62,17 @@ public class Game
 	//extra insert to prevent duplicate code
 	void insertArea(Connection conn, String name, String country, String population) throws SQLException  {
 		try {
-		//If country inte redan finns? TODO om det finns tid
-		PreparedStatement countryPstmt = conn.prepareStatement("INSERT INTO Countries VALUES (?)");
-		countryPstmt.setString(1, country);
-		countryPstmt.executeUpdate();
-		countryPstmt.close();
+		//Check if the country alrea exists, if not insert it 
+		PreparedStatement checkCountryPstmt = conn.prepareStatement("SELECT * FROM Countries WHERE name = ?")
+		checkCountryPstmt.setString(1, country);
+		ResultSet rs = checkCountryPstmt.executeQuery();
+		if(!rs.next()){
+			PreparedStatement countryPstmt = conn.prepareStatement("INSERT INTO Countries VALUES (?)");
+			countryPstmt.setString(1, country);
+			countryPstmt.executeUpdate();
+			countryPstmt.close();
+		}
+		checkCountryPstmt.close();
 	} catch (SQLException e) {
 		System.out.println("something went wrong inserting country");
 	}
