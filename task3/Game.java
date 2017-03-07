@@ -8,13 +8,11 @@
  *    and showScores.
  */
 import java.math.BigDecimal;
+import java.lang.*;
 import java.net.URL;
 import java.sql.*; // JDBC stuff.
-import java.util.Calendar;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.io.*;  // Reading user input.
-import java.util.ArrayList;
 import java.util.concurrent.Executor;
 
 public class Game
@@ -153,18 +151,30 @@ public class Game
 	 * should return the area name of the player's current location.
 	 */
 	String getCurrentArea(Connection conn, Player person) throws SQLException {
-		// TODO: Your implementation here
-
-		// TODO TO HERE
+		String location;
+		PreparedStatement st = conn.prepareStatement("SELECT locationarea FROM Persons WHERE personnummer = ?, country = ? ");
+		st.setString(1, person.personnummer);
+		st.setString(2, person.country);
+		ResultSet rs = st.executeQuery();
+		location = rs.getString(5);
+		rs.close();
+		st.close();
+		return location;
 	}
 
 	/* Given a player, this function
 	 * should return the country name of the player's current location.
 	 */
 	String getCurrentCountry(Connection conn, Player person) throws SQLException {
-		// TODO: Your implementation here
-
-		// TODO TO HERE
+		String location;
+		PreparedStatement st = conn.prepareStatement("SELECT locationarea FROM Persons WHERE personnummer = ?, country = ? ");
+		st.setString(1, person.personnummer);
+		st.setString(2, person.country);
+		ResultSet rs = st.executeQuery();
+		location = rs.getString(4);
+		rs.close();
+		st.close();
+		return location;
 	}
 
 	/* Given a player, this function
@@ -173,9 +183,44 @@ public class Game
  	 * The location should be random and the budget should be 1000.
 	 */
 	int createPlayer(Connection conn, Player person) throws SQLException {
-		// TODO: Your implementation here
+		String randArea = "";
+		String randCountry = "";
+		int rand;
+		int total;
 
-		// TODO TO HERE
+		Statement count = conn.createStatement();
+		ResultSet rs = count.executeQuery("SELECT COUNT (*) FROM Areas");
+		rs.last();
+		total = rs.getRow();
+		rs.beforeFirst();
+		rand = total-1 + (int)(Math.random() * total);
+
+		Statement find = conn.createStatement();
+		ResultSet rsf = find.executeQuery("SELECT * FROM Areas");
+		while(rsf.next()){
+			if (total == rand){
+				randArea = rsf.getString(2);
+				randCountry = rsf.getString(1);
+				break;
+			}
+		}
+
+		PreparedStatement st = conn.prepareStatement("INSERT INTO Persons VALUES (?,?,?,?,?,?)");
+		st.setString(1,person.country);
+		st.setString(2,person.personnummer);
+		st.setString(3,person.playername);
+		st.setString(4,randCountry);
+		st.setString(5,randArea);
+		st.setInt(6,1000);
+		st.executeUpdate();
+
+		st.close();
+		rsf.close();
+		rs.close();
+		count.close();
+
+		//FIXA DETTA : return 1 om det lyckas annars 0
+		return 1;
 	}
 
 	/* Given a player and an area name and country name, this function
@@ -278,8 +323,6 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int buyHotel(Connection conn, Player person, String name, String city, String country) throws SQLException {
-		// TODO: Your implementation here
-
 		// TODO TO HERE
 		return 0;
 	}
@@ -289,26 +332,78 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int changeLocation(Connection conn, Player person, String area, String country) throws SQLException {
-		// TODO: Your implementation here
+		PreparedStatement st = conn.prepareStatement("UPDATE Persons SET locationarea = ?, locationcountry = ? WHERE personnummer = ?, country = ?");
+		st.setString(1, area);
+		st.setString(2, country);
+		st.setString(3, person.personnummer);
+		st.setString(4, person.country);
+		ResultSet rs = st.executeQuery();
 
-		// TODO TO HERE
-		return 0;
+		rs.close();
+		st.close();
+
+		//FIXA DETTA : return 1 om det lyckas annars 0
+		return 1;
 	}
 
 	/* This function should add the visitbonus of 1000 to a random city
  	 */
 	void setVisitingBonus(Connection conn) throws SQLException {
-		// TODO: Your implementation here
+		int bonus = 1000;
+		int rand;
+		int total;
+		String name = "";
+		String country = "";
 
-		// TODO TO HERE
+		Statement st = conn.createStatement();
+		ResultSet rs = st.executeQuery("SELECT COUNT (*) FROM Cities");
+		rs.last();
+		total = rs.getRow();
+		rs.beforeFirst();
+		rand = total-1 + (int)(Math.random() * total);
+
+		Statement find = conn.createStatement();
+		ResultSet rsf = find.executeQuery("SELECT * FROM Cities");
+		while(rsf.next()){
+			if (total == rand){
+				name = rsf.getString(1);
+				country = rsf.getString(2);
+				break;
+			}
+		}
+
+		PreparedStatement insert = conn.prepareStatement("UPDATE Cities SET budget = ? WHERE name = ?, country = ? ");
+		insert.setInt(1, bonus);
+		insert.setString(2, name);
+		insert.setString(3, country);
+		insert.executeUpdate();
+
+		st.close();
+		rsf.close();
+		rs.close();
+		insert.close();
+		find.close();
 	}
 
 	/* This function should print the winner of the game based on the currently highest budget.
  	 */
 	void announceWinner(Connection conn) throws SQLException {
-		// TODO: Your implementation here
-
-		// TODO TO HERE
+		List<ResultSet> winner = new ArrayList<ResultSet>();
+		Statement st = conn.createStatement();
+		ResultSet rs = st.executeQuery("SELECT budget FROM Persons");
+		while (rs.next()){
+			if (rs.getInt(6) > winner.get(0).getInt(6)){
+				winner.clear();
+				winner.add(rs);
+			}
+			else if (rs.getInt(6) == winner.get(0).getInt(6)){
+				winner.add(rs);
+			}
+		}
+		for (int i = 0; winner.size()<i; i++){
+			//hur skriver man ut en sånt objekt?
+			System.out.println(rs.toString());
+		}
 	}
 
 	void play (String worldfile) throws IOException {
