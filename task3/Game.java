@@ -159,7 +159,6 @@ public class Game
 			ResultSet rs = st.executeQuery();
 			rs.next();
 			location = rs.getString(1);
-			//location = rs.getString(5);
 			rs.close();
 			st.close();
 			return location;
@@ -184,9 +183,7 @@ public class Game
 			rs.next();
 			location = rs.getString(1);
 			rs.close();
-			System.out.println("did line 188");
 			st.close();
-			System.out.println("did line 190");
 			return location;
 		}
 		catch (SQLException e){
@@ -230,13 +227,12 @@ public class Game
 			rsf.close();
 
 			PreparedStatement st = conn.prepareStatement("INSERT INTO Persons VALUES (?,?,?,?,?,?)");
-			System.out.println("1");
 			st.setString(1, person.country);
 			st.setString(2, person.personnummer);
 			st.setString(3, person.playername);
 			st.setString(4, randCountry);
 			st.setString(5, randArea);
-			st.setFloat(6, 1000);
+			st.setString(6, "1000");
 			returnValue = st.executeUpdate();
 			st.close();
 			return returnValue;
