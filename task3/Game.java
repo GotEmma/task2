@@ -157,7 +157,9 @@ public class Game
 			st.setString(1, person.personnummer);
 			st.setString(2, person.country);
 			ResultSet rs = st.executeQuery();
-			location = rs.getString(5);
+			rs.next();
+			String location = rs.getString(1);
+			//location = rs.getString(5);
 			rs.close();
 			st.close();
 			return location;
@@ -174,17 +176,18 @@ public class Game
 	String getCurrentCountry(Connection conn, Player person) throws SQLException {
 		String location;
 		try {
-			PreparedStatement st = conn.prepareStatement("SELECT locationarea FROM Persons WHERE personnummer = ?, country = ? ");
+			PreparedStatement st = conn.prepareStatement("SELECT locationcountry FROM Persons WHERE personnummer = ?, country = ? ");
 			st.setString(1, person.personnummer);
 			st.setString(2, person.country);
 			ResultSet rs = st.executeQuery();
-			location = rs.getString(4);
+			rs.next();
+			String location = rs.getString(1);
 			rs.close();
 			st.close();
 			return location;
 		}
 		catch (SQLException e){
-			System.out.println("something went wrong getting current area");
+			System.out.println("something went wrong getting current country");
 			return null;
 		}
 	}
@@ -246,9 +249,25 @@ public class Game
 	 * The output should include area names, country names and the associated road-taxes
  	 */
 	void getNextMoves(Connection conn, Player person, String area, String country) throws SQLException {
-		// TODO: Your implementation here
+		try {
+			PreparedStatement movesPstmt = conn.prepareStatement("SELECT destcounry, destarea, cost FROM NextMoves WHERE personcountry = ? AND personnummer = ? AND country = ? AND area = ?");
+			movesPstmt.setString(1, person.country);
+			movesPstmt.setString(2, person.personnummer);
+			movesPstmt.setString(3, country);
+			movesPstmt.setString(4, area);
+			ResultSet rs = roadPstmt.executeQuery();
+				while (rs.next()){
+					System.out.println("Destination: ");
+					System.out.println(rs.getString(2) + ", " + rs.getString(1));
+					System.out.println("Cost:");
+					System.out.println(rs.getString(3));
+				}
+				rs.close();
 
-		// TODO TO HERE
+
+		} catch (SQLException e) {
+			System.out.println("something went wrong getting next moves");
+	}
  	}
 
 	/* Given a player, this function
@@ -257,10 +276,7 @@ public class Game
 	 * The output should include area names, country names and the associated road-taxes
 	 */
 	void getNextMoves(Connection conn, Player person) throws SQLException {
-		// TODO: Your implementation here
-		// hint: Use your implementation of the overloaded getNextMoves function
-
-		// TODO TO HERE
+		getNextMoves(conn, person, getCurrentArea(conn, person), getCurrentCountry(conn, perosn));
 	}
 
 	/* Given a personnummer and a country, this function
@@ -279,7 +295,7 @@ public class Game
 					System.out.println(rs.getString(2));
 					System.out.println("To:\n" + rs.getString(3) + ", ");
 					System.out.println(rs.getString(4));
-					System.out.println("Roadtax:\n" + rs.getDouble(5));
+					System.out.println("Roadtax:\n" + rs.getString(5));
 				}
 				rs.close();
 				} catch (SQLException e) {
@@ -317,9 +333,9 @@ public class Game
 			ResultSet rs = scorePstmt.executeQuery();
 			while (rs.next()){
 				System.out.println("Playercountry: " + rs.getString(1) + "Player personnummer: " + rs.getString(2) );
-				System.out.println("Budget: " + rs.getDouble(3));
-				System.out.println("Assets: " + rs.getDouble(4));
-				System.out.println("Refund: " + rs.getDouble(5));
+				System.out.println("Budget: " + rs.getString(3));
+				System.out.println("Assets: " + rs.getString(4));
+				System.out.println("Refund: " + rs.getString(5));
 			}
 			rs.close();
 		} catch (SQLException e) {
