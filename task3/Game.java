@@ -412,7 +412,7 @@ public class Game
 		rs.close();
 		st.close();
 
-		//FIXA DETTA : return 1 om det lyckas annars 0
+		//TODO : return 1 om det lyckas annars 0
 		return 1;
 	}
 
