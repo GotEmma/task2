@@ -63,7 +63,7 @@ public class Game
 	void insertArea(Connection conn, String name, String country, String population) throws SQLException  {
 		try {
 		//Check if the country alrea exists, if not insert it
-		PreparedStatement checkCountryPstmt = conn.prepareStatement("SELECT * FROM Countries WHERE name = ?")
+		PreparedStatement checkCountryPstmt = conn.prepareStatement("SELECT * FROM Countries WHERE name = ?");
 		checkCountryPstmt.setString(1, country);
 		ResultSet rs = checkCountryPstmt.executeQuery();
 		if(!rs.next()){
@@ -316,7 +316,7 @@ public class Game
 			PreparedStatement scorePstmt = conn.prepareStatement("SELECT * FROM AssetSummary");
 			ResultSet rs = scorePstmt.executeQuery();
 			while (rs.next()){
-				System.out.println("Playercountry: " + rs.getString(1) "Player personnummer: " + rs.getString(2) );
+				System.out.println("Playercountry: " + rs.getString(1) + "Player personnummer: " + rs.getString(2) );
 				System.out.println("Budget: " + rs.getDouble(3));
 				System.out.println("Assets: " + rs.getDouble(4));
 				System.out.println("Refund: " + rs.getDouble(5));
