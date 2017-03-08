@@ -158,14 +158,14 @@ public class Game
 			st.setString(2, person.country);
 			ResultSet rs = st.executeQuery();
 			rs.next();
-			String location = rs.getString(1);
+			location = rs.getString(1);
 			//location = rs.getString(5);
 			rs.close();
 			st.close();
 			return location;
 		}
 		catch (SQLException e){
-			System.out.println("something went wrong getting current area");
+			System.out.println("something went wrong getting current Area");
 			return null;
 		}
 	}
@@ -174,6 +174,7 @@ public class Game
 	 * should return the country name of the player's current location.
 	 */
 	String getCurrentCountry(Connection conn, Player person) throws SQLException {
+		System.out.println("enter");
 		String location;
 		try {
 			PreparedStatement st = conn.prepareStatement("SELECT locationcountry FROM Persons WHERE personnummer = ?, country = ? ");
@@ -181,9 +182,11 @@ public class Game
 			st.setString(2, person.country);
 			ResultSet rs = st.executeQuery();
 			rs.next();
-			String location = rs.getString(1);
+			location = rs.getString(1);
 			rs.close();
+			System.out.println("did line 188");
 			st.close();
+			System.out.println("did line 190");
 			return location;
 		}
 		catch (SQLException e){
@@ -207,11 +210,11 @@ public class Game
 		try {
 			Statement count = conn.createStatement();
 			ResultSet rs = count.executeQuery("SELECT COUNT (*) FROM Areas");
-			rs.last();
+			while (rs.next()) {
+			}
 			total = rs.getRow();
-			rs.beforeFirst();
-			rand = total - 1 + (int) (Math.random() * total);
 			rs.close();
+			rand = total - 1 + (int) (Math.random() * total);
 			count.close();
 
 			Statement find = conn.createStatement();
@@ -227,6 +230,7 @@ public class Game
 			rsf.close();
 
 			PreparedStatement st = conn.prepareStatement("INSERT INTO Persons VALUES (?,?,?,?,?,?)");
+			System.out.println("1");
 			st.setString(1, person.country);
 			st.setString(2, person.personnummer);
 			st.setString(3, person.playername);
@@ -238,7 +242,8 @@ public class Game
 			return returnValue;
 		}
 		catch (SQLException e){
-			System.out.println("something went wrong getting current area");
+			e.printStackTrace();
+			System.out.println("something went wrong creating person");
 			return 0;
 		}
 	}
@@ -255,7 +260,7 @@ public class Game
 			movesPstmt.setString(2, person.personnummer);
 			movesPstmt.setString(3, country);
 			movesPstmt.setString(4, area);
-			ResultSet rs = roadPstmt.executeQuery();
+			ResultSet rs = movesPstmt.executeQuery();
 				while (rs.next()){
 					System.out.println("Destination: ");
 					System.out.println(rs.getString(2) + ", " + rs.getString(1));
@@ -276,7 +281,7 @@ public class Game
 	 * The output should include area names, country names and the associated road-taxes
 	 */
 	void getNextMoves(Connection conn, Player person) throws SQLException {
-		getNextMoves(conn, person, getCurrentArea(conn, person), getCurrentCountry(conn, perosn));
+		getNextMoves(conn, person, getCurrentArea(conn, person), getCurrentCountry(conn, person));
 	}
 
 	/* Given a personnummer and a country, this function
