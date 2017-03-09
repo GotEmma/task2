@@ -74,17 +74,19 @@ public class Game
 		}
 		checkCountryPstmt.close();
 	} catch (SQLException e) {
+		e.printStackTrace();
 		System.out.println("something went wrong inserting country");
 	}
 		try {
 			//insert area
-			PreparedStatement areaPstmt = conn.prepareStatement("INSERT INTO Areas VALUES (?, ?, ?)");
+			PreparedStatement areaPstmt = conn.prepareStatement("INSERT INTO Areas VALUES (?, ?, cast(? as INT))");
 			areaPstmt.setString(1, country);
 			areaPstmt.setString(2, name);
-			areaPstmt.setInt(3, Integer.parseInt(population));
+			areaPstmt.setString(3, population);
 			areaPstmt.executeUpdate();
 			areaPstmt.close();
 		} catch (SQLException e) {
+			e.printStackTrace();
 			 System.out.println("something went wrong inserting area");
 		}
 	}
@@ -104,6 +106,7 @@ public class Game
 			townPstmt.close();
 
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong inserting town");
 		}
 	}
@@ -124,6 +127,7 @@ public class Game
 			cityPstmt.close();
 
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong inserting city");
 		}
 	}
@@ -134,15 +138,19 @@ public class Game
  	 */
 	void insertRoad(Connection conn, String area1, String country1, String area2, String country2) throws SQLException {
 		try {
-			PreparedStatement roadPstmt = conn.prepareStatement("INSERT INTO Roads VALUES (?, ?, ?, ?, '', '', 0)");
+			PreparedStatement roadPstmt = conn.prepareStatement("INSERT INTO Roads VALUES (?, ?, ?, ?, ?, ?, cast (? as NUMERIC) )");
 			roadPstmt.setString(1, country1);
 			roadPstmt.setString(2, area1);
 			roadPstmt.setString(3, country2);
 			roadPstmt.setString(4, area2);
+			roadPstmt.setString(5, "");
+			roadPstmt.setString(6, "");
+			roadPstmt.setString(7, "0");
 			roadPstmt.executeUpdate();
 			roadPstmt.close();
 
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong inserting road");
 		}
 	}
@@ -153,7 +161,7 @@ public class Game
 	String getCurrentArea(Connection conn, Player person) throws SQLException {
 		String location;
 		try {
-			PreparedStatement st = conn.prepareStatement("SELECT locationarea FROM Persons WHERE personnummer = ?, country = ? ");
+			PreparedStatement st = conn.prepareStatement("SELECT locationarea FROM Persons WHERE personnummer = ? AND country = ? ");
 			st.setString(1, person.personnummer);
 			st.setString(2, person.country);
 			ResultSet rs = st.executeQuery();
@@ -164,6 +172,7 @@ public class Game
 			return location;
 		}
 		catch (SQLException e){
+			e.printStackTrace();
 			System.out.println("something went wrong getting current Area");
 			return null;
 		}
@@ -173,10 +182,9 @@ public class Game
 	 * should return the country name of the player's current location.
 	 */
 	String getCurrentCountry(Connection conn, Player person) throws SQLException {
-		System.out.println("enter");
 		String location;
 		try {
-			PreparedStatement st = conn.prepareStatement("SELECT locationcountry FROM Persons WHERE personnummer = ?, country = ? ");
+			PreparedStatement st = conn.prepareStatement("SELECT locationcountry FROM Persons WHERE personnummer = ? AND country = ? ");
 			st.setString(1, person.personnummer);
 			st.setString(2, person.country);
 			ResultSet rs = st.executeQuery();
@@ -187,6 +195,7 @@ public class Game
 			return location;
 		}
 		catch (SQLException e){
+			e.printStackTrace();
 			System.out.println("something went wrong getting current country");
 			return null;
 		}
@@ -201,17 +210,19 @@ public class Game
 		String randArea = "";
 		String randCountry = "";
 		int rand;
-		int total;
+		int total = 0;
 		int returnValue;
 
 		try {
 			Statement count = conn.createStatement();
-			ResultSet rs = count.executeQuery("SELECT COUNT (*) FROM Areas");
+			ResultSet rs = count.executeQuery("SELECT * FROM Areas");
 			while (rs.next()) {
+				total ++;
 			}
-			total = rs.getRow();
 			rs.close();
-			rand = total - 1 + (int) (Math.random() * total);
+			// Start at line 2, not counting "" as an area
+			rand = 2 + (int) (Math.random() * (total - 1));
+
 			count.close();
 
 			Statement find = conn.createStatement();
@@ -226,7 +237,7 @@ public class Game
 			find.close();
 			rsf.close();
 
-			PreparedStatement st = conn.prepareStatement("INSERT INTO Persons VALUES (?,?,?,?,?,?)");
+			PreparedStatement st = conn.prepareStatement("INSERT INTO Persons VALUES (?,?,?,?,?, cast(? as NUMERIC))");
 			st.setString(1, person.country);
 			st.setString(2, person.personnummer);
 			st.setString(3, person.playername);
@@ -352,7 +363,7 @@ public class Game
 		//check if there is such a road or asume it is??
 		int returnValue;
 		try {
-			PreparedStatement sellRoadPstmt = conn.prepareStatement("DELETE FROM Roads (WHERE ownercountry = ? AND ownerpersonnummer = ?) AND (fromcountry = ? AND fromarea = ? AND tocountry = ? AND toarea = ?) OR (fromcountry = ? AND fromarea = ? AND tocountry = ? AND toarea = ?)");
+			PreparedStatement sellRoadPstmt = conn.prepareStatement("DELETE FROM Roads WHERE (ownercountry = ? AND ownerpersonnummer = ?) AND ((fromcountry = ? AND fromarea = ? AND tocountry = ? AND toarea = ?) OR (fromcountry = ? AND fromarea = ? AND tocountry = ? AND toarea = ?))");
 			sellRoadPstmt.setString(1, person.country);
 			sellRoadPstmt.setString(2, person.personnummer);
 			sellRoadPstmt.setString(3, country1);
@@ -367,6 +378,7 @@ public class Game
 			sellRoadPstmt.close();
 			return returnValue;
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong selling road");
 			return 0;
 		}
@@ -388,6 +400,7 @@ public class Game
 			sellHotelPstmt.close();
 			return returnValue;
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong selling hotel");
 			return 0;
 		}
@@ -398,7 +411,6 @@ public class Game
 	 * and return 1 in case of a success and 0 otherwise.
 	 */
 	int buyRoad(Connection conn, Player person, String area1, String country1, String area2, String country2) throws SQLException {
-		int returnValue;
 		try {
 			PreparedStatement roadPstmt = conn.prepareStatement("INSERT INTO Roads VALUES (?,?,?,?,?,?,getval('roadtax'))");
 			roadPstmt.setString(1, country1);
@@ -407,10 +419,11 @@ public class Game
 			roadPstmt.setString(4, area2);
 			roadPstmt.setString(5, person.country);
 			roadPstmt.setString(6, person.personnummer);
-			returnValue = roadPstmt.executeUpdate();
+			roadPstmt.executeUpdate();
 			roadPstmt.close();
-			return returnValue;
+			return 1;
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong buying road");
 			return 0;
 		}
@@ -433,6 +446,7 @@ public class Game
 			hotelPstmt.close();
 			return returnValue;
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong buying hotel");
 			return 0;
 		}
@@ -445,7 +459,7 @@ public class Game
 	int changeLocation(Connection conn, Player person, String area, String country) throws SQLException {
 		int returnValue;
 		try {
-			PreparedStatement st = conn.prepareStatement("UPDATE Persons SET locationarea = ?, locationcountry = ? WHERE personnummer = ?, country = ?");
+			PreparedStatement st = conn.prepareStatement("UPDATE Persons SET locationarea = ?, locationcountry = ? WHERE personnummer = ? AND country = ?");
 			st.setString(1, area);
 			st.setString(2, country);
 			st.setString(3, person.personnummer);
@@ -455,6 +469,7 @@ public class Game
 			return returnValue;
 		}
 		catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong changing location");
 			return 0;
 		}
@@ -463,19 +478,20 @@ public class Game
 	/* This function should add the visitbonus of 1000 to a random city
  	 */
 	void setVisitingBonus(Connection conn) throws SQLException {
-		int bonus = 1000;
+		//int bonus = 1000;
 		int rand;
-		int total;
+		int total = 0;
 		String name = "";
 		String country = "";
 
 		try {
 			Statement st = conn.createStatement();
-			ResultSet rs = st.executeQuery("SELECT COUNT (*) FROM Cities");
-			rs.last();
-			total = rs.getRow();
-			rs.beforeFirst();
-			rand = total - 1 + (int) (Math.random() * total);
+			ResultSet rs = st.executeQuery("SELECT * FROM Cities");
+			while(rs.next()){
+				total++;
+			}
+
+			rand = 1 + (int) (Math.random() * total);
 			st.close();
 			rs.close();
 
@@ -483,22 +499,23 @@ public class Game
 			ResultSet rsf = find.executeQuery("SELECT * FROM Cities");
 			while (rsf.next()) {
 				if (rsf.getRow() == rand) {
-					name = rsf.getString(1);
-					country = rsf.getString(2);
+					name = rsf.getString(2);
+					country = rsf.getString(1);
 					break;
 				}
 			}
 			find.close();
 			rsf.close();
 
-			PreparedStatement insert = conn.prepareStatement("UPDATE Cities SET budget = ? WHERE name = ?, country = ? ");
-			insert.setInt(1, bonus);
+			PreparedStatement insert = conn.prepareStatement("UPDATE Cities SET visitbonus = cast(? as INT) WHERE name = ? AND country = ? ");
+			insert.setString(1, "1000");
 			insert.setString(2, name);
 			insert.setString(3, country);
 			insert.executeUpdate();
 			insert.close();
 		}
 		catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong setting visiting bonus");
 		}
 

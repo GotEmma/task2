@@ -36,7 +36,6 @@ BEGIN
     RETURN;
 END
 $$ LANGUAGE 'plpgsql' ;
-
 CREATE TABLE Countries (name TEXT,
   PRIMARY KEY (name)
 );
@@ -206,7 +205,7 @@ CREATE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
       NEW.ownercountry = country AND NEW.ownerpersonnummer = personnummer;
       RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
-      IF (EXISTS (SELECT locationcountry, locationname, FROM Hotels
+      IF (EXISTS (SELECT locationcountry, locationname FROM Hotels
           WHERE locationname != NEW.locationname OR NEW.locationname = NULL OR
           locationcountry != NEW.locationcountry OR NEW.locationcountry = NULL))
           THEN RETURN NULL;
@@ -241,7 +240,7 @@ CREATE FUNCTION person() RETURNS TRIGGER AS $personChanges$
           THEN UPDATE Persons SET budget = budget - (SELECT MIN(cost) FROM NextMoves
           WHERE NextMoves.personnummer = personnummer AND NextMoves.personcountry = country)
           WHERE Persons.personnummer = personnummer AND Persons.country = country;
-          IF (EXISTS (SELECT name, country, Hotels.locationcountry, Hotels.locationname FROM Cities, Hotels
+          IF (EXISTS (SELECT Cities.name, country, Hotels.locationcountry, Hotels.locationname FROM Cities, Hotels
           WHERE name = NEW.locationname AND country = NEW.locationcountry AND
           Hotels.locationcountry = NEW.locationcountry AND Hotels.locationname = NEW.locationname))
               THEN UPDATE Persons SET budget = budget - getval(’cityvisit’) +
@@ -256,7 +255,7 @@ CREATE FUNCTION person() RETURNS TRIGGER AS $personChanges$
 $personChanges$ LANGUAGE plpgsql
 ;
 CREATE TRIGGER personChanges
-  BEFORE INSERT OR UPDATE OR DELETE ON Persons
+  BEFORE UPDATE ON Persons
   FOR EACH ROW
   EXECUTE PROCEDURE person()
 ;
