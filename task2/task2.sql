@@ -96,23 +96,23 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
 
-CREATE VIEW NextMoves --(personcountry, personnummer, country, area, destcounry, destarea, cost)
-  AS
+CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, area, destcounry, destarea, cost)
+  WITH NextMovesSub AS (
     SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
     Persons.locationarea as area,
-    Roads.tocountry as destcounry, Roads.toarea as destarea, Roads.roadtax as cost
+    Roads.tocountry as destcountry, Roads.toarea as destarea, Roads.roadtax as cost
     FROM Persons INNER JOIN Roads ON
       Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea
     UNION
     SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
     Persons.locationarea as area,
-    Roads.fromcountry as destcounry, Roads.fromarea as destarea, Roads.roadtax as cost
+    Roads.fromcountry as destcountry, Roads.fromarea as destarea, Roads.roadtax as cost
     FROM Persons INNER JOIN Roads ON
       Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea
     UNION
     SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
       Persons.locationarea as area,
-      Roads.fromcountry as destcounry, Roads.fromarea as destarea, 0 as cost
+      Roads.fromcountry as destcountry, Roads.fromarea as destarea, 0 as cost
       FROM Persons INNER JOIN Roads ON
       (Persons.locationcountry = Roads.tocountry AND Persons.locationarea = Roads.toarea) AND
       ((Persons.country = Roads.ownercountry AND Persons.personnummer = Roads.ownerpersonnummer)
@@ -120,12 +120,18 @@ CREATE VIEW NextMoves --(personcountry, personnummer, country, area, destcounry,
     UNION
     SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
           Persons.locationarea as area,
-          Roads.tocountry as destcounry, Roads.toarea as destarea, 0 as cost
+          Roads.tocountry as destcountry, Roads.toarea as destarea, 0 as cost
             FROM Persons INNER JOIN Roads ON
             (Persons.locationcountry = Roads.fromcountry AND Persons.locationarea = Roads.fromarea) AND
             ((Persons.country = Roads.ownercountry AND Persons.personnummer = Roads.ownerpersonnummer)
             OR (''= Roads.ownercountry AND '' = Roads.ownerpersonnummer))
-  ORDER by personnummer, cost ASC
+    )
+    SELECT
+    *
+    FROM NextMovesSub
+    WHERE personnummer != '' AND personcountry != ''
+    --GROUP BY personcountry, personnummer, country, area, destcountry, destarea
+    ORDER by personnummer, personcountry, destarea, cost ASC
   --ta översta raden per sträcka person
   ;
 
@@ -258,4 +264,28 @@ CREATE TRIGGER personChanges
   BEFORE UPDATE ON Persons
   FOR EACH ROW
   EXECUTE PROCEDURE person()
+;
+CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
+  BEGIN
+    -- See if there is a road to the new location
+    IF (NOT EXISTS (SELECT * FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+      AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea))
+    THEN
+    RAISE NOTICE 'There is no road to the new location';
+    RETURN NULL;
+      -- Check if Person have enough  money to roadtax
+    ELSIF ((SELECT cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+        AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea)
+        > NEW.budget)
+      THEN
+      RAISE NOTICE 'Person cannot afford to travel on that road';
+      RETURN NULL;
+    END IF;
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql ;
+CREATE TRIGGER changeLocation
+  BEFORE UPDATE OF locationarea ON Persons
+  FOR EACH ROW
+  EXECUTE PROCEDURE changeLocation()
 ;
