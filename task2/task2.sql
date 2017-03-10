@@ -268,19 +268,39 @@ CREATE TRIGGER personChanges
 CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
   BEGIN
     -- See if there is a road to the new location
-    IF (NOT EXISTS (SELECT * FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+    IF (NOT EXISTS (SELECT * FROM NextMoves WHERE personnummer = OLD.personnummer AND personcountry = OLD.country
       AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea))
     THEN
     RAISE NOTICE 'There is no road to the new location';
     RETURN NULL;
       -- Check if Person have enough  money to roadtax
-    ELSIF ((SELECT cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+    ELSIF ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = OLD.personnummer AND personcountry = OLD.country
         AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea)
-        > NEW.budget)
+        > OLD.budget)
       THEN
       RAISE NOTICE 'Person cannot afford to travel on that road';
       RETURN NULL;
+    -- Check if there is a cityvisit
+    ELSIF (EXISTS (SELECT * FROM Hotels
+      WHERE locationcountry = NEW.locationcountry AND locationname = NEW.locationarea))
+      -- Check if we have enough money to visit city
+      THEN IF ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+          AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea) + getval('cityvisit')
+            < NEW.budget)
+            --update budget, deduct roadtax and cityvisit
+            THEN UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+                AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea) + getval('cityvisit')
+                WHERE personnummer = NEW.personnummer AND country = NEW.country;
+            RETURN NEW;
+      END IF;
+      RAISE NOTICE 'Person cannot afford cityvisit';
+      RETURN NULL;
     END IF;
+    -- Deduct money for road tax
+    UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = OLD.personnummer AND personcountry = OLD.country
+        AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea)
+    WHERE personnummer = NEW.personnummer AND country = NEW.country;
+    --something is not working
     RETURN NEW;
   END;
 $$ LANGUAGE plpgsql ;
