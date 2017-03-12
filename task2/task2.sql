@@ -154,7 +154,7 @@ CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, are
     ;
 
 
-    CREATE FUNCTION roadChanges() RETURNS TRIGGER AS $road$
+    CREATE OR REPLACE FUNCTION roadChanges() RETURNS TRIGGER AS $road$
     BEGIN
       IF (TG_OP = 'INSERT') THEN
         IF (EXISTS (SELECT toarea, fromarea, ownercountry, ownerpersonnummer FROM Roads WHERE
@@ -167,11 +167,11 @@ CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, are
               THEN IF ((SELECT budget FROM Persons
               WHERE country = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer) > getval('roadprice'))
 
-                THEN IF (EXISTS (SELECT locationcountry, locationarea, personnummer FROM Persons
-                     WHERE ((locationarea = NEW.toarea AND locationcountry = NEW.ownercountry
-                       AND personnummer = NEW.ownerpersonnummer)
-                     OR (NEW.fromarea = locationarea AND locationcountry = NEW.ownercountry
-                       AND personnummer = NEW.ownerpersonnummer))))
+                THEN IF (EXISTS (SELECT * FROM Persons
+                     WHERE ((locationarea = NEW.toarea AND locationcountry = NEW.tocountry
+                       AND personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry)
+                     OR (NEW.fromarea = locationarea AND locationcountry = NEW.fromcountry
+                       AND personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry))))
                      THEN UPDATE Persons SET budget = budget - getval('roadprice') WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
                      RETURN NEW;
                  END IF;
@@ -184,11 +184,13 @@ CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, are
         RETURN NEW;
 
       ELSIF (TG_OP = 'UPDATE') THEN
-        IF (EXISTS (SELECT roadtax FROM Roads
-            WHERE roadtax != NEW.roadtax))
-            THEN RETURN NEW;
+        IF OLD.fromcountry != NEW.fromcountry OR OLD.fromarea != NEW.fromarea OR OLD.tocountry != NEW.tocountry 
+            OR OLD.toarea != NEW.toarea OR OLD.ownercountry != NEW.ownercountry OR OLD.ownerpersonnummer != NEW.ownerpersonnummer
+            THEN
+            RAISE NOTICE 'You can only change the roadtax';
+            RETURN NULL;
         END IF;
-        RETURN NULL;
+        RETURN NEW;
       END IF;
       RETURN NULL;
     END;
@@ -306,8 +308,9 @@ CREATE OR REPLACE FUNCTION afterChangeLocation() RETURNS TRIGGER AS $$
   IF(EXISTS (SELECT * FROM Hotels
     WHERE locationcountry = NEW.locationcountry AND locationname = NEW.locationarea))
   --update budget, deduct roadtax and cityvisit
-  THEN UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
-      AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea) + getval('cityvisit')
+
+  THEN UPDATE Persons SET budget = budget - ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+      AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea) + getval('cityvisit'))
       WHERE personnummer = NEW.personnummer AND country = NEW.country;
       RETURN NEW;
     ELSE
