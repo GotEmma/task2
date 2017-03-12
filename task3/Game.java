@@ -262,7 +262,7 @@ public class Game
  	 */
 	void getNextMoves(Connection conn, Player person, String area, String country) throws SQLException {
 		try {
-			PreparedStatement movesPstmt = conn.prepareStatement("SELECT destcounry, destarea, cost FROM NextMoves WHERE personcountry = ? AND personnummer = ? AND country = ? AND area = ?");
+			PreparedStatement movesPstmt = conn.prepareStatement("SELECT destcountry, destarea, cost FROM NextMoves WHERE personcountry = ? AND personnummer = ? AND country = ? AND area = ?");
 			movesPstmt.setString(1, person.country);
 			movesPstmt.setString(2, person.personnummer);
 			movesPstmt.setString(3, country);
@@ -278,6 +278,7 @@ public class Game
 
 
 		} catch (SQLException e) {
+			e.printStackTrace();
 			System.out.println("something went wrong getting next moves");
 	}
  	}
@@ -312,6 +313,7 @@ public class Game
 				rs.close();
 				} catch (SQLException e) {
 					System.out.println("something went wrong listing (road) properties");
+					e.printStackTrace();
 			}
 			try {
 				PreparedStatement hotelPstmt = conn.prepareStatement("SELECT name, locationcountry, locationname FROM Hotels WHERE ownercountry = ? AND ownerpersonnummer = ?");
@@ -326,6 +328,7 @@ public class Game
 				rs.close();
 				} catch (SQLException e) {
 					System.out.println("something went wrong listing (hotel) properties");
+					e.printStackTrace();
 				}
 			}
 
@@ -352,6 +355,7 @@ public class Game
 			rs.close();
 		} catch (SQLException e) {
 			System.out.println("something went wrong listing scores");
+			e.printStackTrace();
 		}
 	}
 
@@ -540,12 +544,17 @@ public class Game
 		for (int i = 0; winner.size()<i; i++){
 			System.out.println(rs.toString());
 		}*/
+		try{
 		Statement st = conn.createStatement();
 		ResultSet rs = st.executeQuery("SELECT personnummer, country FROM Persons ORDER by budget DESC");
-		rs.next();
+		//rs.next();
 		System.out.println("The winner is: " + rs.getString(2) + " from " + rs.getString(1));
 		rs.close();
 		st.close();
+	} catch (Exception e) {
+		e.printStackTrace();
+		System.out.println("something went wrong announcing winner");
+	}
 	}
 
 

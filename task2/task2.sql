@@ -96,7 +96,7 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
 
-CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, area, destcounry, destarea, cost)
+CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, area, destcountry, destarea, cost)
   WITH NextMovesSub AS (
     SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
     Persons.locationarea as area,
@@ -268,15 +268,15 @@ CREATE TRIGGER personChanges
 CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
   BEGIN
     -- See if there is a road to the new location
-    IF (NOT EXISTS (SELECT * FROM NextMoves WHERE personnummer = OLD.personnummer AND personcountry = OLD.country
+    IF (NOT EXISTS (SELECT * FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
       AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea))
     THEN
     RAISE NOTICE 'There is no road to the new location';
     RETURN NULL;
       -- Check if Person have enough  money to roadtax
-    ELSIF ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = OLD.personnummer AND personcountry = OLD.country
+    ELSIF ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
         AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea)
-        > OLD.budget)
+        > NEW.budget)
       THEN
       RAISE NOTICE 'Person cannot afford to travel on that road';
       RETURN NULL;
@@ -287,20 +287,12 @@ CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
       THEN IF ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
           AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea) + getval('cityvisit')
             < NEW.budget)
-            --update budget, deduct roadtax and cityvisit
-            THEN UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
-                AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea) + getval('cityvisit')
-                WHERE personnummer = NEW.personnummer AND country = NEW.country;
+            THEN
             RETURN NEW;
       END IF;
       RAISE NOTICE 'Person cannot afford cityvisit';
       RETURN NULL;
     END IF;
-    -- Deduct money for road tax
-    UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = OLD.personnummer AND personcountry = OLD.country
-        AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea)
-    WHERE personnummer = NEW.personnummer AND country = NEW.country;
-    --something is not working
     RETURN NEW;
   END;
 $$ LANGUAGE plpgsql ;
@@ -308,4 +300,27 @@ CREATE TRIGGER changeLocation
   BEFORE UPDATE OF locationarea ON Persons
   FOR EACH ROW
   EXECUTE PROCEDURE changeLocation()
+;
+CREATE OR REPLACE FUNCTION afterChangeLocation() RETURNS TRIGGER AS $$
+  BEGIN
+  IF(EXISTS (SELECT * FROM Hotels
+    WHERE locationcountry = NEW.locationcountry AND locationname = NEW.locationarea))
+  --update budget, deduct roadtax and cityvisit
+  THEN UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+      AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea) + getval('cityvisit')
+      WHERE personnummer = NEW.personnummer AND country = NEW.country;
+      RETURN NEW;
+    ELSE
+    -- Deduct money for road tax
+      UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+          AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea)
+      WHERE personnummer = NEW.personnummer AND country = NEW.country;
+      RETURN NEW;
+    END IF;
+  END;
+$$ LANGUAGE plpgsql ;
+CREATE TRIGGER afterChangeLocation
+  AFTER UPDATE OF locationarea ON Persons
+  FOR EACH ROW
+  EXECUTE PROCEDURE afterChangeLocation()
 ;
