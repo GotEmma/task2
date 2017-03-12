@@ -524,6 +524,7 @@ public class Game
 	/* This function should print the winner of the game based on the currently highest budget.
  	 */
 	void announceWinner(Connection conn) throws SQLException {
+		/*
 		List<ResultSet> winner = new ArrayList<ResultSet>();
 		Statement st = conn.createStatement();
 		ResultSet rs = st.executeQuery("SELECT budget FROM Persons");
@@ -537,10 +538,16 @@ public class Game
 			}
 		}
 		for (int i = 0; winner.size()<i; i++){
-			//hur skriver man ut en sånt objekt?
 			System.out.println(rs.toString());
-		}
+		}*/
+		Statement st = conn.createStatement();
+		ResultSet rs = st.executeQuery("SELECT personnummer, country FROM Persons ORDER by budget DESC");
+		rs.next();
+		System.out.println("The winner is: " + rs.getString(2) + " from " + rs.getString(1));
+		rs.close();
+		st.close();
 	}
+
 
 	void play (String worldfile) throws IOException {
 
