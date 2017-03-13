@@ -184,7 +184,7 @@ CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, are
         RETURN NEW;
 
       ELSIF (TG_OP = 'UPDATE') THEN
-        IF OLD.fromcountry != NEW.fromcountry OR OLD.fromarea != NEW.fromarea OR OLD.tocountry != NEW.tocountry 
+        IF OLD.fromcountry != NEW.fromcountry OR OLD.fromarea != NEW.fromarea OR OLD.tocountry != NEW.tocountry
             OR OLD.toarea != NEW.toarea OR OLD.ownercountry != NEW.ownercountry OR OLD.ownerpersonnummer != NEW.ownerpersonnummer
             THEN
             RAISE NOTICE 'You can only change the roadtax';
@@ -236,37 +236,6 @@ $hotelChanges$ LANGUAGE plpgsql
    FOR EACH ROW
    EXECUTE PROCEDURE hotel()
 ;
-CREATE FUNCTION person() RETURNS TRIGGER AS $personChanges$
-  BEGIN
-    IF(TG_OP = 'UPDATE') THEN
-      IF (EXISTS (SELECT fromarea, fromcountry, toarea, tocountry, locationarea,
-      locationcountry, personnummer, country FROM Roads, Persons
-      WHERE (fromarea = NEW.locationarea AND fromcountry = NEW.locationcountry
-      AND locationarea = toarea AND locationcountry = tocountry) OR
-      (toarea = NEW.locationarea AND tocountry = NEW.locationcountry
-      AND locationarea = fromarea AND locationcountry = fromcountry)))
-          THEN UPDATE Persons SET budget = budget - (SELECT MIN(cost) FROM NextMoves
-          WHERE NextMoves.personnummer = personnummer AND NextMoves.personcountry = country)
-          WHERE Persons.personnummer = personnummer AND Persons.country = country;
-          IF (EXISTS (SELECT Cities.name, country, Hotels.locationcountry, Hotels.locationname FROM Cities, Hotels
-          WHERE name = NEW.locationname AND country = NEW.locationcountry AND
-          Hotels.locationcountry = NEW.locationcountry AND Hotels.locationname = NEW.locationname))
-              THEN UPDATE Persons SET budget = budget - getval(’cityvisit’) +
-              (SELECT visitbonus FROM Cities WHERE Persons.personnummer = personnummer AND Persons.country = country)
-              WHERE Persons.personnummer = personnummer;
-          END IF;
-          RETURN NEW;
-      END IF;
-      RETURN NULL;
-    END IF;
-  END;
-$personChanges$ LANGUAGE plpgsql
-;
-CREATE TRIGGER personChanges
-  BEFORE UPDATE ON Persons
-  FOR EACH ROW
-  EXECUTE PROCEDURE person()
-;
 CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
   BEGIN
     -- See if there is a road to the new location
@@ -305,21 +274,38 @@ CREATE TRIGGER changeLocation
 ;
 CREATE OR REPLACE FUNCTION afterChangeLocation() RETURNS TRIGGER AS $$
   BEGIN
-  IF(EXISTS (SELECT * FROM Hotels
-    WHERE locationcountry = NEW.locationcountry AND locationname = NEW.locationarea))
-  --update budget, deduct roadtax and cityvisit
-
-  THEN UPDATE Persons SET budget = budget - ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
-      AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea) + getval('cityvisit'))
-      WHERE personnummer = NEW.personnummer AND country = NEW.country;
-      RETURN NEW;
-    ELSE
-    -- Deduct money for road tax
-      UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
-          AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea)
-      WHERE personnummer = NEW.personnummer AND country = NEW.country;
-      RETURN NEW;
+  --deduct money for roadtax
+  UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+      AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea)
+  WHERE personnummer = NEW.personnummer AND country = NEW.country;
+  -- check if it is a city
+  IF(EXISTS (SELECT * FROM Cities
+    WHERE NEW.locationarea = name AND NEW.locationcountry = country))
+    --Check if there are hotels in the city
+    THEN IF(EXISTS (SELECT * FROM Hotels
+      WHERE locationcountry = NEW.locationcountry AND locationname = NEW.locationarea))
+      --update budget, deduct cityvisit
+      THEN UPDATE Persons SET budget = budget - getval('cityvisit')
+        WHERE personnummer = NEW.personnummer AND country = NEW.country;
+      --update hotelowners' budget(s)
+      UPDATE Persons SET budget = budget + (getval('cityvisit')/
+        (SELECT count(*) FROM Hotels WHERE locationcountry = NEW.locationcountry AND locationname = NEW.locationarea))
+        FROM Hotels
+        WHERE Hotels.locationcountry = NEW.locationcountry AND Hotels.locationname = NEW.locationarea
+        AND Hotels.ownercountry = Persons.country AND Hotels.ownerpersonnummer = Persons.personnummer;
     END IF;
+    -- check if there is a visitbonus
+    IF(EXISTS (SELECT visitbonus FROM Cities
+      WHERE NEW.locationarea = name AND NEW.locationcountry = country))
+      --add visitbonus
+      THEN UPDATE Persons SET budget = budget + (SELECT visitbonus FROM Cities
+        WHERE NEW.locationarea = name AND NEW.locationcountry = country)
+      WHERE personnummer = NEW.personnummer AND country = NEW.country;
+    END IF;
+    RETURN NEW;
+  ELSE
+    RETURN NEW;
+  END IF;
   END;
 $$ LANGUAGE plpgsql ;
 CREATE TRIGGER afterChangeLocation
