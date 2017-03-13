@@ -1,41 +1,3 @@
-CREATE TABLE Constants(
-    name TEXT PRIMARY KEY,
-    value NUMERIC NOT NULL
-);
-
-INSERT INTO Constants VALUES('roadprice', 456.9);
-INSERT INTO Constants VALUES('hotelprice', 789.2);
-INSERT INTO Constants VALUES('roadtax', 13.5);
-INSERT INTO Constants VALUES('hotelrefund', 0.50);
-INSERT INTO Constants VALUES('cityvisit', 102030.3);
-
-CREATE OR REPLACE FUNCTION getval(qname TEXT) RETURNS NUMERIC AS $$
-DECLARE
-    xxx NUMERIC;
-BEGIN
-    xxx := (SELECT value FROM Constants WHERE name = qname);
-    RETURN xxx;
-END
-$$ LANGUAGE 'plpgsql' ;
-CREATE OR REPLACE FUNCTION assert(x numeric, y numeric) RETURNS void AS $$
-BEGIN
-    IF NOT (SELECT trunc(x, 2) = trunc(y, 2))
-    THEN
-        RAISE 'assert(%=%) failed (up to 2 decimal places, checked with trunc())!', x, y;
-    END IF;
-    RETURN;
-END
-$$ LANGUAGE 'plpgsql' ;
-
-CREATE OR REPLACE FUNCTION assert(x text, y text) RETURNS void AS $$
-BEGIN
-    IF NOT (SELECT x = y)
-    THEN
-        RAISE 'assert(%=%) failed!', x, y;
-    END IF;
-    RETURN;
-END
-$$ LANGUAGE 'plpgsql' ;
 CREATE TABLE Countries (name TEXT,
   PRIMARY KEY (name)
 );
@@ -96,7 +58,7 @@ CREATE TABLE Roads (fromcountry TEXT,
   CONSTRAINT distinct_from_and_to CHECK(fromarea != toarea)
 );
 
-CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, area, destcountry, destarea, cost)
+CREATE OR REPLACE VIEW NextMoves AS
   WITH NextMovesSub AS (
     SELECT Persons.country as personcountry, personnummer, Persons.locationcountry as country,
     Persons.locationarea as area,
@@ -130,9 +92,7 @@ CREATE OR REPLACE VIEW NextMoves AS --(personcountry, personnummer, country, are
     *
     FROM NextMovesSub
     WHERE personnummer != '' AND personcountry != ''
-    --GROUP BY personcountry, personnummer, country, area, destcountry, destarea
     ORDER by personnummer, personcountry, destarea, cost ASC
-  --ta översta raden per sträcka person
   ;
 
   CREATE VIEW AssetSummary AS
@@ -201,30 +161,38 @@ CREATE TRIGGER road
   FOR EACH ROW
   EXECUTE PROCEDURE roadChanges()
 ;
-CREATE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
+CREATE OR REPLACE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
   BEGIN
     IF (TG_OP = 'INSERT') THEN
-      IF (EXISTS (SELECT ownercountry, ownerpersonnummer, locationcountry, locationname FROM Hotels
+      IF (EXISTS (SELECT * FROM Hotels
           WHERE ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer
           AND locationname = NEW.locationname AND locationcountry = NEW.locationcountry))
-          THEN RETURN NULL;
+          THEN
+          RAISE NOTICE 'Person already owns hotel in this city';
+          RETURN NULL;
       END IF;
-      UPDATE Persons SET budget = budget - getval(’hotelprice’) WHERE
-      NEW.ownercountry = country AND NEW.ownerpersonnummer = personnummer;
+      IF ((SELECT budget FROM Persons WHERE country = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer)
+          < getval('hotelprice'))
+        THEN
+        RAISE NOTICE 'Persons cannot afford to buy this hotel';
+        RETURN NULL;
+      END IF;
       RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
-      IF (EXISTS (SELECT locationcountry, locationname FROM Hotels
-          WHERE locationname != NEW.locationname OR NEW.locationname = NULL OR
-          locationcountry != NEW.locationcountry OR NEW.locationcountry = NULL))
-          THEN RETURN NULL;
-      ELSIF (EXISTS (SELECT ownercountry, ownerpersonnummer, locationcountry, locationname FROM Hotels
-             WHERE ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer
-             AND locationname = OLD.locationname AND locationcountry = OLD.locationcountry))
-             THEN RETURN NULL;
+      IF OLD.locationname != NEW.locationname OR OLD.locationcountry != NEW.locationcountry
+        THEN
+        RAISE NOTICE 'You cannot change location of a hotel';
+        RETURN NULL;
+      END IF;
+      IF (EXISTS (SELECT * FROM Hotels WHERE OLD.locationcountry = locationcountry AND OLD.locationname = locationname
+        AND ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer))
+        THEN
+        RAISE NOTICE 'The new owner already has a hotel in this city';
+        RETURN NULL;
       END IF;
       RETURN NEW;
     ELSIF (TG_OP = 'DELETE') THEN
-      UPDATE Persons SET budget = budget + getval(’hotelrefund’) WHERE
+      UPDATE Persons SET budget = budget + (getval('hotelrefund')*getval('hotelprice')) WHERE
       personnummer = OLD.ownerpersonnummer AND country = OLD.ownercountry;
       RETURN OLD;
     END IF;
@@ -236,6 +204,19 @@ $hotelChanges$ LANGUAGE plpgsql
    FOR EACH ROW
    EXECUTE PROCEDURE hotel()
 ;
+CREATE FUNCTION payHotel() RETURNS TRIGGER AS $$
+  BEGIN
+    UPDATE Persons SET budget = budget - getval('hotelprice') WHERE
+    NEW.ownercountry = country AND NEW.ownerpersonnummer = personnummer;
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql
+;
+  CREATE TRIGGER payHotel
+    AFTER INSERT ON Hotels
+    FOR EACH ROW
+    EXECUTE PROCEDURE payHotel()
+  ;
 CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
   BEGIN
     -- See if there is a road to the new location
@@ -301,6 +282,9 @@ CREATE OR REPLACE FUNCTION afterChangeLocation() RETURNS TRIGGER AS $$
       THEN UPDATE Persons SET budget = budget + (SELECT visitbonus FROM Cities
         WHERE NEW.locationarea = name AND NEW.locationcountry = country)
       WHERE personnummer = NEW.personnummer AND country = NEW.country;
+      --set visitbonus to 0
+      UPDATE Cities SET visitbonus = 0
+      WHERE NEW.locationarea = name AND NEW.locationcountry = country;
     END IF;
     RETURN NEW;
   ELSE
