@@ -74,8 +74,7 @@ public class Game
 		}
 		checkCountryPstmt.close();
 	} catch (SQLException e) {
-		e.printStackTrace();
-		System.out.println("something went wrong inserting country");
+		System.out.println(e.getMessage());
 	}
 		try {
 			//insert area
@@ -86,8 +85,7 @@ public class Game
 			areaPstmt.executeUpdate();
 			areaPstmt.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-			 System.out.println("something went wrong inserting area");
+			 System.out.println(e.getMessage());
 		}
 	}
 
@@ -106,8 +104,7 @@ public class Game
 			townPstmt.close();
 
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong inserting town");
+			System.out.println(e.getMessage());
 		}
 	}
 
@@ -127,8 +124,7 @@ public class Game
 			cityPstmt.close();
 
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong inserting city");
+			System.out.println(e.getMessage());
 		}
 	}
 
@@ -150,8 +146,7 @@ public class Game
 			roadPstmt.close();
 
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong inserting road");
+			System.out.println(e.getMessage());
 		}
 	}
 
@@ -172,8 +167,7 @@ public class Game
 			return location;
 		}
 		catch (SQLException e){
-			e.printStackTrace();
-			System.out.println("something went wrong getting current Area");
+			System.out.println(e.getMessage());
 			return null;
 		}
 	}
@@ -195,8 +189,7 @@ public class Game
 			return location;
 		}
 		catch (SQLException e){
-			e.printStackTrace();
-			System.out.println("something went wrong getting current country");
+			System.out.println(e.getMessage());
 			return null;
 		}
 	}
@@ -249,8 +242,7 @@ public class Game
 			return returnValue;
 		}
 		catch (SQLException e){
-			e.printStackTrace();
-			System.out.println("something went wrong creating person");
+			System.out.println(e.getMessage());
 			return 0;
 		}
 	}
@@ -278,8 +270,7 @@ public class Game
 
 
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong getting next moves");
+			System.out.println(e.getMessage());
 	}
  	}
 
@@ -312,8 +303,7 @@ public class Game
 				}
 				rs.close();
 				} catch (SQLException e) {
-					System.out.println("something went wrong listing (road) properties");
-					e.printStackTrace();
+					System.out.println(e.getMessage());
 			}
 			try {
 				PreparedStatement hotelPstmt = conn.prepareStatement("SELECT name, locationcountry, locationname FROM Hotels WHERE ownercountry = ? AND ownerpersonnummer = ?");
@@ -327,8 +317,7 @@ public class Game
 				}
 				rs.close();
 				} catch (SQLException e) {
-					System.out.println("something went wrong listing (hotel) properties");
-					e.printStackTrace();
+					System.out.println(e.getMessage());
 				}
 			}
 
@@ -354,8 +343,7 @@ public class Game
 			}
 			rs.close();
 		} catch (SQLException e) {
-			System.out.println("something went wrong listing scores");
-			e.printStackTrace();
+			System.out.println(e.getMessage());
 		}
 	}
 
@@ -382,8 +370,7 @@ public class Game
 			sellRoadPstmt.close();
 			return returnValue;
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong selling road");
+			System.out.println(e.getMessage());
 			return 0;
 		}
 	}
@@ -404,8 +391,7 @@ public class Game
 			sellHotelPstmt.close();
 			return returnValue;
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong selling hotel");
+			System.out.println(e.getMessage());
 			return 0;
 		}
 	}
@@ -427,8 +413,7 @@ public class Game
 			roadPstmt.close();
 			return 1;
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong buying road");
+			System.out.println(e.getMessage());
 			return 0;
 		}
 	}
@@ -450,8 +435,7 @@ public class Game
 			hotelPstmt.close();
 			return returnValue;
 		} catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong buying hotel");
+			System.out.println(e.getMessage());
 			return 0;
 		}
 	}
@@ -473,8 +457,7 @@ public class Game
 			return returnValue;
 		}
 		catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong changing location");
+			System.out.println(e.getMessage());
 			return 0;
 		}
 	}
@@ -519,8 +502,7 @@ public class Game
 			insert.close();
 		}
 		catch (SQLException e) {
-			e.printStackTrace();
-			System.out.println("something went wrong setting visiting bonus");
+			System.out.println(e.getMessage());
 		}
 
 	}
@@ -536,8 +518,7 @@ public class Game
 		rs.close();
 		st.close();
 	} catch (Exception e) {
-		e.printStackTrace();
-		System.out.println("something went wrong announcing winner");
+		System.out.println(e.getMessage());
 	}
 	}
 
