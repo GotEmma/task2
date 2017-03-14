@@ -253,20 +253,28 @@ public class Game
 	 * The output should include area names, country names and the associated road-taxes
  	 */
 	void getNextMoves(Connection conn, Player person, String area, String country) throws SQLException {
+		String personcountry = person.country;
+		String personnummer = person.personnummer;
+
 		try {
-			PreparedStatement movesPstmt = conn.prepareStatement("SELECT destcountry, destarea, cost FROM NextMoves WHERE personcountry = ? AND personnummer = ? AND country = ? AND area = ?");
-			movesPstmt.setString(1, person.country);
-			movesPstmt.setString(2, person.personnummer);
+			PreparedStatement movesPstmt = conn.prepareStatement("SELECT tocountry, toarea, min(tax) AS tax FROM (SELECT tocountry, toarea, CASE WHEN (ownercountry != ? AND ownerpersonnummer != ?) OR (ownercountry !='' AND ownerpersonnummer !='') THEN roadtax ELSE 0 END AS tax FROM roads WHERE fromcountry = ? AND fromarea = ? UNION SELECT fromcountry AS tocountry, fromarea AS toarea, CASE WHEN (ownercountry != ? AND ownerpersonnummer != ?) OR (ownercountry !='' AND ownerpersonnummer !='') THEN roadtax ELSE 0 END AS tax FROM roads WHERE tocountry = ? AND toarea = ?) AS next GROUP BY tocountry, toarea");
+			movesPstmt.setString(1, personcountry);
+			movesPstmt.setString(2, personnummer);
 			movesPstmt.setString(3, country);
 			movesPstmt.setString(4, area);
+			movesPstmt.setString(5, personcountry);
+			movesPstmt.setString(6, personnummer);
+			movesPstmt.setString(7, country);
+			movesPstmt.setString(8, area);
 			ResultSet rs = movesPstmt.executeQuery();
-				while (rs.next()){
-					System.out.println("Destination: ");
-					System.out.println(rs.getString(2) + ", " + rs.getString(1));
-					System.out.println("Cost:");
-					System.out.println(rs.getString(3));
-				}
-				rs.close();
+
+			while (rs.next()){
+				System.out.println("Destination: ");
+				System.out.println(rs.getString(2) + ", " + rs.getString(1));
+				System.out.println("Cost:");
+				System.out.println(rs.getString(3));
+			}
+			rs.close();
 
 
 		} catch (SQLException e) {
