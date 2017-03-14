@@ -10,7 +10,7 @@ INSERT INTO Areas VALUES ('Denmark','Copenhagen',1100000);
 
 INSERT INTO Cities VALUES ('Sweden','Stockholm',1000);
 INSERT INTO Cities VALUES ('Sweden','Gothenburg',2000);
-INSERT INTO Cities VALUES ('Denmark','Copenhagen');
+INSERT INTO Cities VALUES ('Denmark','Copenhagen',0);
 
 INSERT INTO Persons VALUES ('','','The_government','Sweden','Gothenburg',1000000000000);
 INSERT INTO Persons VALUES ('Sweden','11111111-1111','Player1','Sweden','Gothenburg',10000);
@@ -39,6 +39,8 @@ SELECT assert((SELECT budget FROM Persons WHERE personnummer = '22222222-2222'),
 UPDATE Persons SET locationarea = 'Stockholm' WHERE personnummer='33333333-3333';
 --Check that roadtax is deducted
 SELECT assert((SELECT budget FROM Persons WHERE personnummer = '33333333-3333'), 999986.5);
+--Check that roadtax is added to roadowner
+SELECT assert((SELECT budget FROM Persons WHERE personnummer = '22222222-2222'), 1001013.5);
 
 UPDATE Persons SET locationarea = 'Gothenburg' WHERE personnummer='44444444-4444';
 --Check that cityvisit is deducted and visitbonus is added
@@ -48,7 +50,7 @@ SELECT assert((SELECT budget FROM Persons WHERE personnummer = '11111111-1111'),
 
 UPDATE Persons SET locationarea = 'Copenhagen', locationcountry = 'Denmark' WHERE personnummer='11111111-1111';
 --Check that cityvisit is deducted
-SELECT assert((SELECT budget FROM Persons WHERE personnummer = '11111111-1111'), 897969.7);
+SELECT assert((SELECT budget FROM Persons WHERE personnummer = '11111111-1111'), 1000000);
 --Check that hotelowners got cityvisit
-SELECT assert((SELECT budget FROM Persons WHERE personnummer = '22222222-2222'), 1052015.15);
+SELECT assert((SELECT budget FROM Persons WHERE personnummer = '22222222-2222'), 1052028.65);
 SELECT assert((SELECT budget FROM Persons WHERE personnummer = '33333333-3333'), 1051001.65);

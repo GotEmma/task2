@@ -15,7 +15,7 @@ CREATE TABLE Towns(country TEXT,
 );
 CREATE TABLE Cities (country TEXT,
   name TEXT,
-  visitbonus INT,
+  visitbonus NUMERIC NOT NULL,
   PRIMARY KEY(country, name),
   FOREIGN KEY(country, name) REFERENCES Areas(country, name),
   CONSTRAINT bonus_positive CHECK (visitbonus >= 0)
@@ -25,7 +25,7 @@ CREATE TABLE Persons(country TEXT,
   name TEXT NOT NULL,
   locationcountry TEXT NOT NULL,
   locationarea TEXT NOT NULL,
-  budget NUMERIC,
+  budget NUMERIC NOT NULL,
   PRIMARY KEY(country, personnummer),
   FOREIGN KEY(country) REFERENCES Countries(name),
   FOREIGN KEY(locationcountry, locationarea) REFERENCES Areas(country, name),
@@ -88,11 +88,11 @@ CREATE OR REPLACE VIEW NextMoves AS
             ((Persons.country = Roads.ownercountry AND Persons.personnummer = Roads.ownerpersonnummer)
             OR (''= Roads.ownercountry AND '' = Roads.ownerpersonnummer))
     )
-    SELECT
+    SELECT DISTINCT ON (personcountry, personnummer, country, area, destcountry, destarea)
     *
     FROM NextMovesSub
     WHERE personnummer != '' AND personcountry != ''
-    ORDER by personnummer, personcountry, destarea, cost ASC
+    ORDER by personnummer, personcountry, country, area, destcountry, destarea, cost ASC
   ;
 
   CREATE VIEW AssetSummary AS
@@ -108,7 +108,7 @@ CREATE OR REPLACE VIEW NextMoves AS
         FROM Hotels
         WHERE Persons.country = ownercountry AND Persons.personnummer = ownerpersonnummer)
       as reclaimable
-    FROM Persons
+    FROM Persons WHERE Persons.personnummer != '' AND Persons.country != ''
     GROUP by country, personnummer
     ORDER by personnummer
     ;
@@ -121,7 +121,7 @@ CREATE OR REPLACE VIEW NextMoves AS
             ((ownerpersonnummer = NEW.ownerpersonnummer) AND (ownercountry = NEW.ownercountry)
             AND (toarea = NEW.toarea OR toarea = NEW.fromarea) AND (fromarea = NEW.fromarea OR fromarea = NEW.toarea))))
             THEN
-            RAISE NOTICE 'Road already exists for that owner';
+            RAISE EXCEPTION 'Road already exists for that owner';
             RETURN NULL;
         ELSIF (NEW.ownercountry != '' AND NEW.ownerpersonnummer != '')
               THEN IF ((SELECT budget FROM Persons
@@ -135,10 +135,10 @@ CREATE OR REPLACE VIEW NextMoves AS
                      THEN UPDATE Persons SET budget = budget - getval('roadprice') WHERE personnummer = NEW.ownerpersonnummer AND country = NEW.ownercountry;
                      RETURN NEW;
                  END IF;
-                 RAISE NOTICE 'Person have to be located where the road begin/end';
+                 RAISE EXCEPTION 'Person have to be located where the road begin/end';
                  RETURN NULL;
               END IF;
-              RAISE NOTICE 'Player does not have enough money to buy a road';
+              RAISE EXCEPTION 'Player does not have enough money to buy a road';
               RETURN NULL;
         END IF ;
         RETURN NEW;
@@ -147,7 +147,7 @@ CREATE OR REPLACE VIEW NextMoves AS
         IF OLD.fromcountry != NEW.fromcountry OR OLD.fromarea != NEW.fromarea OR OLD.tocountry != NEW.tocountry
             OR OLD.toarea != NEW.toarea OR OLD.ownercountry != NEW.ownercountry OR OLD.ownerpersonnummer != NEW.ownerpersonnummer
             THEN
-            RAISE NOTICE 'You can only change the roadtax';
+            RAISE EXCEPTION 'You can only change the roadtax';
             RETURN NULL;
         END IF;
         RETURN NEW;
@@ -168,26 +168,26 @@ CREATE OR REPLACE FUNCTION hotel() RETURNS TRIGGER AS $hotelChanges$
           WHERE ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer
           AND locationname = NEW.locationname AND locationcountry = NEW.locationcountry))
           THEN
-          RAISE NOTICE 'Person already owns hotel in this city';
+          RAISE EXCEPTION 'Person already owns hotel in this city';
           RETURN NULL;
       END IF;
       IF ((SELECT budget FROM Persons WHERE country = NEW.ownercountry AND personnummer = NEW.ownerpersonnummer)
           < getval('hotelprice'))
         THEN
-        RAISE NOTICE 'Persons cannot afford to buy this hotel';
+        RAISE EXCEPTION 'Persons cannot afford to buy this hotel';
         RETURN NULL;
       END IF;
       RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
       IF OLD.locationname != NEW.locationname OR OLD.locationcountry != NEW.locationcountry
         THEN
-        RAISE NOTICE 'You cannot change location of a hotel';
+        RAISE EXCEPTION 'You cannot change location of a hotel';
         RETURN NULL;
       END IF;
       IF (EXISTS (SELECT * FROM Hotels WHERE OLD.locationcountry = locationcountry AND OLD.locationname = locationname
         AND ownercountry = NEW.ownercountry AND ownerpersonnummer = NEW.ownerpersonnummer))
         THEN
-        RAISE NOTICE 'The new owner already has a hotel in this city';
+        RAISE EXCEPTION 'The new owner already has a hotel in this city';
         RETURN NULL;
       END IF;
       RETURN NEW;
@@ -223,14 +223,14 @@ CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
     IF (NOT EXISTS (SELECT * FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
       AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea))
     THEN
-    RAISE NOTICE 'There is no road to the new location';
+    RAISE EXCEPTION 'There is no road to the new location';
     RETURN NULL;
       -- Check if Person have enough  money to roadtax
     ELSIF ((SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
         AND destcountry = NEW.locationcountry AND destarea = NEW.locationarea)
         > NEW.budget)
       THEN
-      RAISE NOTICE 'Person cannot afford to travel on that road';
+      RAISE EXCEPTION 'Person cannot afford to travel on that road';
       RETURN NULL;
     -- Check if there is a cityvisit
     ELSIF (EXISTS (SELECT * FROM Hotels
@@ -242,7 +242,7 @@ CREATE OR REPLACE FUNCTION changeLocation() RETURNS TRIGGER AS $$
             THEN
             RETURN NEW;
       END IF;
-      RAISE NOTICE 'Person cannot afford cityvisit';
+      RAISE EXCEPTION 'Person cannot afford cityvisit';
       RETURN NULL;
     END IF;
     RETURN NEW;
@@ -254,11 +254,23 @@ CREATE TRIGGER changeLocation
   EXECUTE PROCEDURE changeLocation()
 ;
 CREATE OR REPLACE FUNCTION afterChangeLocation() RETURNS TRIGGER AS $$
+  DECLARE
+    tax NUMERIC;
   BEGIN
+    tax := (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
+        AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea);
+
   --deduct money for roadtax
-  UPDATE Persons SET budget = budget - (SELECT DISTINCT ON (personnummer, personcountry, destarea, destcountry) cost FROM NextMoves WHERE personnummer = NEW.personnummer AND personcountry = NEW.country
-      AND destcountry = OLD.locationcountry AND destarea = OLD.locationarea)
-  WHERE personnummer = NEW.personnummer AND country = NEW.country;
+  UPDATE Persons SET budget = budget - tax WHERE personnummer = NEW.personnummer AND country = NEW.country;
+  IF tax != 0
+  THEN
+    --add roadtax money to road owner
+    UPDATE Persons SET budget = budget + Roads.roadtax
+    FROM Roads
+    WHERE ((Roads.tocountry = NEW.locationcountry AND Roads.toarea = NEW.locationarea AND Roads.fromcountry = OLD.locationcountry
+    AND Roads.fromarea = OLD.locationarea) OR (Roads.tocountry = OLD.locationcountry AND Roads.toarea = OLD.locationarea AND Roads.fromcountry = NEW.locationcountry
+    AND Roads.fromarea = NEW.locationarea)) AND Roads.ownerpersonnummer = Persons.personnummer AND Roads.ownercountry = Persons.country;
+  END IF;
   -- check if it is a city
   IF(EXISTS (SELECT * FROM Cities
     WHERE NEW.locationarea = name AND NEW.locationcountry = country))
@@ -276,8 +288,8 @@ CREATE OR REPLACE FUNCTION afterChangeLocation() RETURNS TRIGGER AS $$
         AND Hotels.ownercountry = Persons.country AND Hotels.ownerpersonnummer = Persons.personnummer;
     END IF;
     -- check if there is a visitbonus
-    IF(EXISTS (SELECT visitbonus FROM Cities
-      WHERE NEW.locationarea = name AND NEW.locationcountry = country))
+    IF((SELECT visitbonus FROM Cities
+      WHERE NEW.locationarea = name AND NEW.locationcountry = country) != 0)
       --add visitbonus
       THEN UPDATE Persons SET budget = budget + (SELECT visitbonus FROM Cities
         WHERE NEW.locationarea = name AND NEW.locationcountry = country)
